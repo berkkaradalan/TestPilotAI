@@ -1,41 +1,30 @@
-from typing import Optional
 import keyring
+from typing import Optional
 
-def set_api_key(provider=str, api_key=str):
-    if provider and api_key:
-        keyring.set_password(provider, "api_key", api_key)
-        return f"✅ API key for {provider} set successfully."
-    else:
-        return "⚠️ Provider and API key are required."
-    
-def get_api_key(provider: str) -> Optional[str]:
-    if provider:
-        api_key = keyring.get_password(provider, "api_key")
-        return f"🔑 API key for {provider}: {api_key}" if api_key else "❌ No API key found."
-    return "⚠️ Provider is required."
+SERVICE_NAME = "openrouter"
 
-def delete_api_key(provider: str):
-    if provider:
-        existing = keyring.get_password(provider, "api_key")
-        if existing:
-            keyring.delete_password(provider, "api_key")
-            return f"🗑️ API key for {provider} deleted successfully."
-        else:
-            return "❌ No API key found to delete."
-    else:
-        return "⚠️ Provider is required."
+def set_api_key(api_key: str) -> str:
+    keyring.set_password(SERVICE_NAME, "api_key", api_key)
+    return "✅ OpenRouter API key set successfully."
 
-def set_default_provider(provider: str):
-    if provider:
-        keyring.set_password("default", "provider", provider)
-        return f"✅ Default provider set to {provider}."
-    else:
-        return "⚠️ Provider is required to set default."
+def get_api_key() -> Optional[str]:
+    api_key = keyring.get_password(SERVICE_NAME, "api_key")
+    return f"🔑 OpenRouter API key: {api_key}" if api_key else "❌ No API key found."
 
-def get_default_provider():
-    provider = keyring.get_password("default", "provider")
-    if provider:
-        return provider
-    else:
-        return "❌ No default provider set."
+def delete_api_key() -> str:
+    existing = keyring.get_password(SERVICE_NAME, "api_key")
+    if existing:
+        keyring.delete_password(SERVICE_NAME, "api_key")
+        return "🗑️ OpenRouter API key deleted successfully."
+    return "❌ No API key found to delete."
 
+def set_default_model(model: str) -> str:
+    keyring.set_password(SERVICE_NAME, "default_model", model)
+    return f"✅ Default model set to {model}."
+
+def get_default_model() -> Optional[str]:
+    model = keyring.get_password(SERVICE_NAME, "default_model")
+    return f"🎯 Default model: {model}" if model else "❌ No default model set."
+
+def check_api_key() -> bool:
+    return keyring.get_password(SERVICE_NAME, "api_key")
