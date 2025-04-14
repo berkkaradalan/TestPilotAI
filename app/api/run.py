@@ -1,5 +1,6 @@
 import json
 from typing import Optional, Dict, Any
+from app.api.openrouter import get_openrouter_models, select_model
 
 def read_json_file(file_path:str):
     try:
@@ -50,7 +51,6 @@ def parse_open_api(openapi_data: dict) -> None:
             parsed_open_api_string += f"  Method: {method.upper()}\n"
             parsed_open_api_string += f"    Summary: {method_data.get('summary', 'No summary available')}"
             parsed_open_api_string += f"\n    Operation ID: {method_data.get('operationId', 'No operation ID available')}\n"
-            # Request Body
             if 'requestBody' in method_data:
                 request_schema_ref = (
                     method_data["requestBody"]
@@ -75,10 +75,19 @@ def parse_open_api(openapi_data: dict) -> None:
                     parsed_open_api_string += f"        Response Schema Ref: {ref}\n"
                     parsed_open_api_string += f"        Response Schema:\n"
                     parsed_open_api_string += get_response_schema(openapi_data=openapi_data, schema_name=ref.split("/")[-1])
-            # Parameters
             if 'parameters' in method_data:
                 parsed_open_api_string += "    Parameters:\n"
                 for param in method_data["parameters"]:
                     parsed_open_api_string += f"      - Name: {param['name']}, In: {param['in']}, Type: {param['schema']['type']}\n"
             parsed_open_api_string += "\n"
-        return parsed_open_api_string
+        print(parsed_open_api_string)
+    return parsed_open_api_string
+    
+def parse_endpoints(openapi_data: dict) -> None:
+    parsed_open_api_string = """"""
+    for path, methods in openapi_data["paths"].items():
+        parsed_open_api_string += f"Path: {path}\n"
+        for method, method_data in methods.items():
+            parsed_open_api_string += f"  Method: {method.upper()}\n"
+            parsed_open_api_string += f"    Summary: {method_data.get('summary', 'No summary available')}"
+    return parsed_open_api_string

@@ -1,6 +1,8 @@
 import argparse
 import sys
-from app.api.run import read_json_file, validate_open_api, parse_open_api
+from app.api.run import read_json_file, validate_open_api, parse_open_api, parse_endpoints
+from app.api.prompts import pytest_test_scenarios_prompt
+from app.api.openrouter import get_openrouter_models, select_model
 from app.config import api_key_utils
 
 parser = argparse.ArgumentParser(description='OpenRouter AI tool manager')
@@ -30,7 +32,7 @@ if args.command == 'set-apikey':
 elif args.command == 'set-default-model':
     print(api_key_utils.set_default_model(args.model))
 elif args.command == 'get-apikey':
-    print(api_key_utils.get_api_key())
+    print(api_key_utils.get_api_key_for_user())
 elif args.command == 'get-default-model':
     print(api_key_utils.get_default_model())
 elif args.command == 'delete-apikey':
@@ -43,6 +45,17 @@ elif args.command == 'run':
     if not validate_open_api(openapi_file_data):
         print("🚨 Invalid OpenAPI file")
         sys.exit(1)
-    parse_open_api(openapi_file_data)
+    open_router_models = get_openrouter_models(api_key=api_key_utils.get_api_key())
+    if not api_key_utils.get_api_key():
+        print("🚨 API key not set. Please set it using --set-apikey.")
+        sys.exit(1)
+    model_list = get_openrouter_models(api_key=api_key_utils.get_api_key())
+    if not model_list:
+        print("🚨🤖 OpenRouter Error: No models found.")
+    else:
+        chosen = select_model(model_list)
+        print(f"\nSelected model: {chosen}")
+    prompt = pytest_test_scenarios_prompt + "\n\n" + parse_endpoints(openapi_file_data)
+    print(prompt)
 else:
     parser.print_help()
