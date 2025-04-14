@@ -176,3 +176,5 @@ cython_debug/
 *openapi.json*
 
 launch.json
+
+test.py
