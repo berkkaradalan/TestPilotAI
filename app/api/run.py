@@ -1,5 +1,5 @@
 import json
-from openapi_schema_pydantic import OpenAPI
+from typing import Optional, Dict, Any
 
 def read_json_file(file_path:str):
     try:
@@ -22,48 +22,63 @@ def validate_open_api(openapi_data: dict) -> bool:
     except Exception as e:
         print(f"Unexpected error: {e}")
         return False
+    
+def get_response_schema(openapi_data: dict, schema_name:str) -> Optional[Dict[str, Any]]:
+    schema_data = openapi_data["components"]["schemas"].get(schema_name)
+    schema_string = """"""
+    for schema_item in schema_data["properties"]:
+        schema_string += f"     Schema Item: {schema_item}\n"
+        try:
+            schema_string += f"         Type: {schema_data['properties'][schema_item]['type']}\n"
+            schema_string += f"         Title: {schema_data['properties'][schema_item]['title']}\n"
+        except KeyError:
+            for anyof_item in schema_data["properties"][schema_item]["anyOf"]:
+                if "items" in anyof_item:
+                    get_response_schema(openapi_data=openapi_data, schema_name=anyof_item["items"]["$ref"].split("/")[-1])
+                    schema_string += f"         Type: {anyof_item['items']['$ref']}\n"
+                schema_string += f"         Type: {anyof_item['type']}\n"
+    return schema_string
 
-#todo
-def parse_open_api(openapi_data: dict):
-    openapi_schema = OpenAPI.parse_obj(openapi_data)
-    for path, path_item in openapi_schema.paths.items():
-        print(f"\nPATH: {path}")
-        
-        for method_name in ['get', 'post', 'put', 'delete', 'patch']:
-            method = getattr(path_item, method_name, None)
-            if not method:
-                continue
 
-            print(f"  METHOD: {method_name.upper()}")
-            print(f"    TAGS: {method.tags}")
-            print(f"    SUMMARY: {method.summary}")
-            
-            if method.requestBody:
-                content = method.requestBody.content
-                for content_type, media in content.items():
-                    print(f"    REQUEST BODY:")
-                    print(f"      Content-Type: {content_type}")
-                    print(f"      Required: {method.requestBody.required}")
-                    print(f"      Schema: {media.schema}")
 
-            if method.parameters:
-                print("    PARAMETERS:")
-                for param in method.parameters:
-                    print(f"      Name: {param.name}")
-                    print(f"      In: {param.param_in}")
-                    print(f"      Required: {param.required}")
-                    print(f"      Schema: {param.schema}")
-        
-            print("    RESPONSES:")
-            for code, response in method.responses.items():
-                print(f"      Status Code: {code}")
-                print(f"        Description: {response.description}")
-                if response.content:
-                    for content_type, media in response.content.items():
-                        print(f"        Content-Type: {content_type}")
-                        print(f"        Schema: {media.schema}")
+def parse_open_api(openapi_data: dict) -> None:
+    for path, methods in openapi_data["paths"].items():
+        parsed_open_api_string = """"""
+        parsed_open_api_string += f"Path: {path}\n"
 
-            if method.security:
-                print(f"    SECURITY:")
-                for sec in method.security:
-                    print(f"      {sec}")
+        for method, method_data in methods.items():
+            parsed_open_api_string += f"  Method: {method.upper()}\n"
+            parsed_open_api_string += f"    Summary: {method_data.get('summary', 'No summary available')}"
+            parsed_open_api_string += f"\n    Operation ID: {method_data.get('operationId', 'No operation ID available')}\n"
+            # Request Body
+            if 'requestBody' in method_data:
+                request_schema_ref = (
+                    method_data["requestBody"]
+                    .get("content", {})
+                    .get("application/json", {})
+                    .get("schema", {})
+                    .get("$ref")
+                )
+                parsed_open_api_string += f"    Request Body Schema: {request_schema_ref}\n"
+
+            # Responses
+            parsed_open_api_string += "    Responses:\n"
+            for status_code, response in method_data.get("responses", {}).items():
+                parsed_open_api_string += f"      {status_code}: {response.get('description', '')}\n"
+                
+                content = response.get("content", {})
+                json_content = content.get("application/json", {})
+                schema = json_content.get("schema", {})
+                ref = schema.get("$ref")
+                
+                if ref:
+                    parsed_open_api_string += f"        Response Schema Ref: {ref}\n"
+                    parsed_open_api_string += f"        Response Schema:\n"
+                    parsed_open_api_string += get_response_schema(openapi_data=openapi_data, schema_name=ref.split("/")[-1])
+            # Parameters
+            if 'parameters' in method_data:
+                parsed_open_api_string += "    Parameters:\n"
+                for param in method_data["parameters"]:
+                    parsed_open_api_string += f"      - Name: {param['name']}, In: {param['in']}, Type: {param['schema']['type']}\n"
+            parsed_open_api_string += "\n"
+        return parsed_open_api_string
