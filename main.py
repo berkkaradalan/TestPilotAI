@@ -2,7 +2,7 @@ import argparse
 import sys
 from app.api.run import read_json_file, validate_open_api, parse_open_api, parse_endpoints
 from app.api.prompts import pytest_test_scenarios_prompt
-from app.api.openrouter import get_openrouter_models, select_model
+from app.api.openrouter import get_openrouter_models, select_model, send_request_to_openrouter, parse_scenarios, select_scenarios_to_run
 from app.config import api_key_utils
 
 parser = argparse.ArgumentParser(description='OpenRouter AI tool manager')
@@ -55,7 +55,10 @@ elif args.command == 'run':
     else:
         chosen = select_model(model_list)
         print(f"\nSelected model: {chosen}")
-    prompt = pytest_test_scenarios_prompt + "\n\n" + parse_endpoints(openapi_file_data)
-    print(prompt)
+    prompt = pytest_test_scenarios_prompt + "\n\n" + parse_open_api(openapi_file_data)
+    test_scenarios = send_request_to_openrouter(api_key=api_key_utils.get_api_key(), model_name=chosen, prompt=prompt)
+    parsed_test_scenarios = parse_scenarios(test_scenarios)
+    chosen_tests = select_scenarios_to_run(parsed_test_scenarios)
+    print(chosen_tests)
 else:
     parser.print_help()
