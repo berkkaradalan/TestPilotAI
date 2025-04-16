@@ -43,8 +43,9 @@ def get_response_schema(openapi_data: dict, schema_name:str) -> Optional[Dict[st
 
 
 def parse_open_api(openapi_data: dict) -> None:
+    parsed_open_api_string = """"""
+
     for path, methods in openapi_data["paths"].items():
-        parsed_open_api_string = """"""
         parsed_open_api_string += f"Path: {path}\n"
 
         for method, method_data in methods.items():
@@ -80,7 +81,6 @@ def parse_open_api(openapi_data: dict) -> None:
                 for param in method_data["parameters"]:
                     parsed_open_api_string += f"      - Name: {param['name']}, In: {param['in']}, Type: {param['schema']['type']}\n"
             parsed_open_api_string += "\n"
-        print(parsed_open_api_string)
     return parsed_open_api_string
     
 def parse_endpoints(openapi_data: dict) -> None:
