@@ -2,7 +2,7 @@ from InquirerPy import inquirer
 from InquirerPy.base.control import Choice
 import requests
 import json
-from typing import List
+from typing import List, Dict, Tuple
 
 def select_model(models):
     return inquirer.fuzzy(
@@ -11,6 +11,7 @@ def select_model(models):
         default=None,
     ).execute()
 
+#todo - add retry annotation
 def get_openrouter_models(api_key: str):
     url = "https://openrouter.ai/api/v1/models"
     headers = {
@@ -25,6 +26,7 @@ def get_openrouter_models(api_key: str):
     model_ids = [model["id"] for model in models if "id" in model]
     return model_ids
 
+#todo - add retry annotation
 def send_request_to_openrouter(api_key: str, model_name: str, prompt: str):
     response = requests.post(
     url="https://openrouter.ai/api/v1/chat/completions",
@@ -44,6 +46,19 @@ def send_request_to_openrouter(api_key: str, model_name: str, prompt: str):
 
     return response.json()['choices'][0]['message']['content']
 
+def convert_scenarios_dict_to_list(scenarios_dict: Dict[str, Dict[str, str]]):
+    formatted_scenarios = []
+    for endpoint, content in scenarios_dict.items():
+        parsed_info = content["parsed_open_api_string"]
+        test_scenario = content["test_scenario"]
+        formatted_scenarios.append(
+            {
+                "endpoint": endpoint,
+                "parsed_info": parsed_info,
+                "test_scenario": test_scenario
+            })
+    return formatted_scenarios
+
 def parse_scenarios(scenarioes:str):
     result = []
     buffer = []
@@ -58,10 +73,11 @@ def parse_scenarios(scenarioes:str):
         result.append("\n".join(buffer).strip())
     return result
 
-def select_scenarios_to_run(scenarios: List[str]) -> List[str]:
+def select_scenarios_to_run(scenarios: List[Dict[str, str]]) -> List[Dict[str, str]]:
+    choices = [Choice(name=item["test_scenario"], value=item) for item in scenarios]
     return inquirer.checkbox(
         message="Select scenarios:",
-        choices=scenarios,
+        choices=choices,
         instruction="(Use space to select, enter to confirm)",
         validate=lambda result: len(result) > 0,
     ).execute()
