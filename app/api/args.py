@@ -7,7 +7,8 @@ from app.api.run import read_json_file, validate_open_api, get_tree_output
 from app.api.openrouter import get_openrouter_models, select_model, convert_scenarios_dict_to_list, select_scenarios_to_run, send_request_to_openrouter
 from app.api.prompts import pytest_test_write_prompt
 from app.api.parser import parse_open_api, get_auth_provider_endpoints
-from app.api.test_runner import run_tests_safely
+from app.api.test_runner import run_tests_safely, attempt_test_fix_loop
+from app.api.file_functions import append_test_code_to_file
 
 def get_args():
     parser = argparse.ArgumentParser(description='OpenRouter AI tool manager')
@@ -16,8 +17,8 @@ def get_args():
     set_parser = subparsers.add_parser('set-apikey', help='Set OpenRouter API key')
     set_parser.add_argument('--api-key', required=True, help='Your OpenRouter API key')
 
-    get_parser = subparsers.add_parser('get-apikey', help='Get OpenRouter API key')  # <-- EKLENDİ
-    delete_parser = subparsers.add_parser('delete-apikey', help='Delete OpenRouter API key')  # <-- EKLENDİ
+    subparsers.add_parser('get-apikey', help='Get OpenRouter API key')
+    subparsers.add_parser('delete-apikey', help='Delete OpenRouter API key')
 
     run_parser = subparsers.add_parser('run', help='Parse OpenAPI file and generate test cases')
     run_parser.add_argument('--openapi-path', required=True, help='Path to OpenAPI spec file')
@@ -61,11 +62,20 @@ def process_command_line_args(args:argparse.Namespace, parser:argparse.ArgumentP
         # for chosen_test in chosen_tests:
             test_prompt = pytest_test_write_prompt + "\n\n" + chosen_test["test_scenario"] + "\n\n" + "open api data of the project:\n" + chosen_test["parsed_info"] + "\n\n" +"tree struct of the project:\n" + get_tree_output(args.project_path, ignore_dirs=[".git", "__pycache__", ".idea", ".vscode", ".pytest_cache", ".mypy_cache"]) + "\n\n" + "auth_provider_endpoints" + "\n" + auth_provider_endpoints
             code_from_ai = send_request_to_openrouter(api_key=api_key_utils.get_api_key(), model_name=chosen, prompt=test_prompt)
-            print(code_from_ai)
-            run_tests_safely(test_code=code_from_ai, project_path=str(args.project_path))
-            #todo - add another prompt for test packages
-            # run_test_in_ephemeral_venv(test_code=code_from_ai, project_path=str(args.project_path))
-            # run_tests_recursive(code=code_from_ai, project=str(args.project_path), retry=1000)
+            # test_runner_result = run_tests_safely(test_code=code_from_ai, project_path=str(args.project_path))
+            test_runner_result = attempt_test_fix_loop(api_key=api_key_utils.get_api_key(),
+                                                       model_name=chosen,
+                                                       test_code=code_from_ai,
+                                                       test_scenario=chosen_test["test_scenario"],
+                                                       tree_struct=get_tree_output(args.project_path, ignore_dirs=[".git", "__pycache__", ".idea", ".vscode", ".pytest_cache", ".mypy_cache"]),
+                                                       project_path=str(args.project_path),)
+            append_test_code_to_file(test_code=test_runner_result, project_path=str(args.project_path), filename=args.save_as)
+            print(test_runner_result)
+            
+
+                # todo - there will be a loop with input option for user to choose what to do next
+
+            # todo - add another prompt for test packages
             
     else:
         parser.print_help()

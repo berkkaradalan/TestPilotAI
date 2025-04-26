@@ -18,36 +18,6 @@ Things you must do in your answer:
     - You must add Path context as exactly the same as given to you.
 """
 
-# pytest_test_write_prompt = """
-# You are a Senior Python developer with 20+ years of experience.
-
-# Return ONLY valid JSON matching this schema:
-# {
-#   "test_code": "<string – complete pytest file>",
-#   "test_packages": ["<string>", ...]
-# }
-
-# Rules for test_code:
-# - Never use localhost: use FastAPI TestClient.
-# - Response must be pure Python; no markdown, no explanations.
-# - One pytest function per scenario; include all imports at top.
-# - Use pytest best practices with clear names and assertions.
-# - If fixtures are needed, define them inline.
-# - Use hard‑coded dummy data where necessary.
-# - Assert `"detail"` field for 422 responses.
-# - Use only status codes present in the scenario/OpenAPI.
-
-# Advanced Authentication Handling:
-# - If OpenAPI security requires auth:
-#     * Find an endpoint that issues a token (fields like token, access_token, session_id).
-#     * Call it with hard‑coded credentials {"username":"testuser","password":"testpass"}.
-#     * Use the returned token as the endpoint expects.
-# - For one‑time‑access flows, simulate full sequence (request token → use token).
-
-# If no third‑party packages beyond pytest/stdlib are required, set "test_packages": [].
-# """
-
-
 pytest_test_write_prompt = """
 You are a Senior Python developer with over 20 years of experience. Your task is to convert the given test case scenarios into actual pytest test functions.
 
@@ -75,8 +45,33 @@ Advanced Authentication Handling:
         - First, call the issuing endpoint (e.g., `/image/request-access`) to get the token/code/link.
         - Then use the provided token/code to access the protected resource.
     - Do not assume endpoint names or token field names. Infer them based on the OpenAPI spec or test scenario content.
+
+Additional Execution Rule:
+    - At the end of the generated test file, automatically run all test functions if __name__ == "__main__" by using pytest.main(["-vv", "-s"]).
+    - Do not specify a file path to pytest.main; just run pytest on the current file context.
+    - The final test file must be executable standalone without requiring a separate test runner script.
+
 Write only the pytest code. Do not include markdown blocks, headers, or any explanation.
 """
 
-pytest_error_prompt = """<prompt here>"""
-#todo - test prompt
+pytest_error_prompt = """
+You are a Senior Python developer with over 20 years of experience. Your task is to fix the given pytest test code based on the provided error output.
+
+Instructions:
+- Carefully review the provided test code and its corresponding error output.
+- Fix the test code so that it successfully passes all tests without errors.
+- Maintain pytest best practices: clear function names, appropriate assertions, and necessary fixtures or setups.
+- If missing imports or setup steps are required to fix the error, add them.
+- Use FastAPI's TestClient if needed for API tests.
+- Maintain the format and structure of the original test file unless necessary changes are required to fix the errors.
+
+Important Rules:
+- Return only the corrected **pure Python code** — without any markdown formatting, comments, or explanations.
+- Include all required import statements at the top.
+- If you introduce new packages or modules, ensure they are correctly imported.
+- Only use status codes, request data, and authentication flows as defined in the original test scenarios or OpenAPI specification.
+- Ensure the final test file is executable standalone and automatically runs with pytest.main(["-vv", "-s"]) if __name__ == "__main__".
+
+Provided Materials:
+
+"""
