@@ -3,9 +3,11 @@ import sys
 import subprocess
 from importlib.util import find_spec
 from pathlib import Path
-from typing import Set
+from typing import Set, List
 from .openrouter import send_request_to_openrouter
 from .prompts import pytest_error_prompt
+from app.api.file_functions import append_test_code_to_file
+
 
 def install_requirements_txt(project_path: str) -> bool:
     req_file = Path(project_path) / "requirements.txt"
@@ -92,42 +94,34 @@ def install_packages(packages: Set[str], timeout: int = 60) -> bool:
         print(f"⏰ Package installation timed out after {timeout} seconds")
         return False
 
-def run_tests_safely(test_code: str, project_path: str) -> bool:
+def run_tests_safely(test_code: str, project_path: str) -> tuple[str, bool]:
     if not install_requirements_txt(project_path):
-        return False
+        return "", False
     required_packages = detect_required_packages(test_code)
     if not install_packages(required_packages):
-        return False
-    
+        return "", False
+
     test_dir = Path(project_path)
-    # test_dir.mkdir(exist_ok=True)
-    
-    test_file = test_dir / "generated_test.py"
+    test_file = test_dir / "test_runner.py"
     try:
         test_file.write_text(test_code, encoding="utf-8")
-        
+
         result = subprocess.run(
-            [sys.executable, "-m", "pytest", str(test_file)],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
+            ["python3", "test_runner.py"],
+            cwd=project_path,
+            capture_output=True,
             text=True
         )
-        
-        # print("\n" + "📜 TEST RESULTS ".ljust(80, "="))
-        # print(result.stdout)
-        # print("="*80 + "\n")
-        
-        return result.stdout
+
+        output = result.stdout + "\n" + result.stderr
+        return output, result.returncode == 0
     except Exception as e:
-        print(f"🔥 Unexpected error: {str(e)}")
-        return False
+        return f"🔥 Unexpected error: {str(e)}", False
     finally:
         try:
             test_file.unlink()
         except Exception as e:
             print(f"⚠️ Error cleaning up test file: {str(e)}")
-            return False
-
 
 def attempt_test_fix_loop(
     api_key: str,
@@ -137,44 +131,53 @@ def attempt_test_fix_loop(
     tree_struct: str,
     project_path: str,
     max_attempts: int = 10,
+    auth_token_endpoint_prompt: str = "",
+    auth_register_endpoint_prompt: str = "",
 ):
     attempt = 0
     current_test_code = test_code
 
-    while True:
+    while attempt < max_attempts:
         print(f"🚀 Attempt {attempt + 1}/{max_attempts}")
-        test_run_output = run_tests_safely(test_code=current_test_code, project_path=project_path)
-
-        if test_run_output and "1 passed" in test_run_output.lower():
-            print("✅ Test passed successfully!")
+        
+        test_run_output, execution_success = run_tests_safely(test_code=current_test_code, project_path=project_path)
+        
+        if execution_success and not any(keyword in test_run_output for keyword in ["FAILED", "ERROR", "assert", "AssertionError"]):
+            print("✅ All tests passed successfully!")
             return current_test_code
-
+        
+        print(f"⚠️ Tests had issues in attempt {attempt + 1}:")
+        error_lines = [line for line in test_run_output.splitlines() if any(kw in line for kw in ["FAILED", "ERROR", "assert", "AssertionError"])]
+        for line in error_lines[:5]:
+            print(f"  {line}")
+        
         if attempt + 1 >= max_attempts:
             user_input = input("⚠️  Maximum attempts reached. Do you want to continue? (y/n): ").strip().lower()
             if user_input == "y":
-                max_attempts += 10
+                max_attempts += 1
             elif user_input == "n":
-                print("🛑 Stopping the fixing process.")
-                return current_test_code
+                print("🛑 Stopping the fixing process without saving failed test.")
+                return None
             else:
                 print("❓ Please enter 'y' or 'n'.")
                 continue
-        else:
-            prompt = (
-                pytest_error_prompt + "\n\n"
-                + "- Current test code : " + "\n" + current_test_code + "\n\n"
-                + "- Error output : " + "\n" + test_run_output + "\n\n"
-                + "- Test Scenario : " +  "\n" + test_scenario + "\n\n"
-                + "- Tree Structure : " + "\n" + tree_struct
-            )
+        
+        prompt = (
+            pytest_error_prompt + "\n\n"
+            + "- Current test code : " + "\n" + current_test_code + "\n\n"
+            + "- Error output : " + "\n" + test_run_output + "\n\n"
+            + "- Test Scenario : " + "\n" + test_scenario + "\n\n"
+            + "- Tree Structure : " + "\n" + tree_struct + "\n"
+            + "- Auth token endpoint : " + "\n" + auth_token_endpoint_prompt + "\n" + "- Auth register endpoint : " + "\n" + auth_register_endpoint_prompt + "\n"
+        )
 
-            fixed_code = send_request_to_openrouter(
-                api_key=api_key,
-                model_name=model_name,
-                prompt=prompt
-            )
+        fixed_code = send_request_to_openrouter(
+            api_key=api_key,
+            model_name=model_name,
+            prompt=prompt
+        )
 
-
-            current_test_code = fixed_code
-            attempt += 1
-
+        current_test_code = fixed_code
+        attempt += 1
+    
+    return None
