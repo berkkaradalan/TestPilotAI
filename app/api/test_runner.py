@@ -3,10 +3,9 @@ import sys
 import subprocess
 from importlib.util import find_spec
 from pathlib import Path
-from typing import Set, List
+from typing import Set
 from .openrouter import send_request_to_openrouter
 from .prompts import pytest_error_prompt
-from app.api.file_functions import append_test_code_to_file
 
 
 def install_requirements_txt(project_path: str) -> bool:
@@ -133,6 +132,7 @@ def attempt_test_fix_loop(
     max_attempts: int = 10,
     auth_token_endpoint_prompt: str = "",
     auth_register_endpoint_prompt: str = "",
+    related_endpoints_prompt: str = "",
 ):
     attempt = 0
     current_test_code = test_code
@@ -154,7 +154,7 @@ def attempt_test_fix_loop(
         if attempt + 1 >= max_attempts:
             user_input = input("⚠️  Maximum attempts reached. Do you want to continue? (y/n): ").strip().lower()
             if user_input == "y":
-                max_attempts += 1
+                max_attempts += 10
             elif user_input == "n":
                 print("🛑 Stopping the fixing process without saving failed test.")
                 return None
@@ -168,7 +168,9 @@ def attempt_test_fix_loop(
             + "- Error output : " + "\n" + test_run_output + "\n\n"
             + "- Test Scenario : " + "\n" + test_scenario + "\n\n"
             + "- Tree Structure : " + "\n" + tree_struct + "\n"
-            + "- Auth token endpoint : " + "\n" + auth_token_endpoint_prompt + "\n" + "- Auth register endpoint : " + "\n" + auth_register_endpoint_prompt + "\n"
+            + "- Auth token endpoint : " + "\n" + auth_token_endpoint_prompt + "\n" 
+            + "- Auth register endpoint : " + "\n" + auth_register_endpoint_prompt + "\n"
+            + related_endpoints_prompt
         )
 
         fixed_code = send_request_to_openrouter(

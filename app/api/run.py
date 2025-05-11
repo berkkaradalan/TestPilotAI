@@ -1,9 +1,5 @@
-from tqdm import tqdm
 import re
 import json
-from typing import Optional, Dict, Any
-from app.api.openrouter import get_openrouter_models, select_model,send_request_to_openrouter
-from pathlib import Path
 import subprocess
 
 def read_json_file(file_path:str):

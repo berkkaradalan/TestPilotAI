@@ -2,7 +2,8 @@ from InquirerPy import inquirer
 from InquirerPy.base.control import Choice
 import requests
 import json
-from typing import List, Dict, Tuple
+from typing import List, Dict
+from app.api.prompts import semantic_endpoint_extraction_prompt
 
 def select_model(models):
     return inquirer.fuzzy(
@@ -51,11 +52,13 @@ def convert_scenarios_dict_to_list(scenarios_dict: Dict[str, Dict[str, str]]):
     for endpoint, content in scenarios_dict.items():
         parsed_info = content["parsed_open_api_string"]
         test_scenario = content["test_scenario"]
+        relative_endpoints = content["relative_paths"]
         formatted_scenarios.append(
             {
                 "endpoint": endpoint,
                 "parsed_info": parsed_info,
-                "test_scenario": test_scenario
+                "test_scenario": test_scenario,
+                "relative_paths": relative_endpoints
             })
     return formatted_scenarios
 
@@ -98,3 +101,7 @@ def user_selection_checkbox(given_choices: List[str]):
         default=None,
     ).execute()
     return None if selected == "[None]" else selected
+
+def get_relative_endpoints(endpoint_path:str, openapi_data: dict, api_key: str, open_router_model: str) -> List[str]:
+    prompt = semantic_endpoint_extraction_prompt + "\n\n" + "Endpoint : " + endpoint_path + "\n\n" + "OpenAPI Data: " + str(openapi_data)
+    return send_request_to_openrouter(api_key=api_key, model_name=open_router_model, prompt=prompt)

@@ -1,7 +1,8 @@
-from app.api.openrouter import send_request_to_openrouter
+import ast
+from app.api.openrouter import send_request_to_openrouter, get_relative_endpoints
 import json
 from tqdm import tqdm
-from typing import Optional, Dict, Any, Tuple
+from typing import Optional, Dict, Any
 from app.api.prompts import pytest_test_scenarios_prompt
 
 def parse_single_endpoint(openapi_data: dict,endpoint_name: str,) -> str:
@@ -27,7 +28,8 @@ def parse_single_endpoint(openapi_data: dict,endpoint_name: str,) -> str:
                 .get("schema", {})
                 .get("$ref")
             )
-            parsed_open_api_string += f"    Request Body Schema: {request_schema_ref}\n"
+            # parsed_open_api_string += f"    Request Body Schema: {request_schema_ref}\n"
+            parsed_open_api_string += f"    Request Body Schema: {get_response_schema(openapi_data=openapi_data, schema_name=request_schema_ref.split("/")[-1])}\n"
         
         if 'security' in method_data:
             parsed_open_api_string += "    Security Requirements:\n"
@@ -114,7 +116,8 @@ def parse_open_api(openapi_data: dict, api_key: Optional[str] = None, open_route
 
         parsed_open_api_data[path] = {
             "parsed_open_api_string": parsed_open_api_string,
-            "test_scenario": test_scenario
+            "test_scenario": test_scenario,
+            "relative_paths": get_relative_endpoints(endpoint_path=path, openapi_data=openapi_data, api_key=api_key, open_router_model=open_router_models),
         }
 
     json_output = json.dumps(parsed_open_api_data, indent=2)
@@ -223,3 +226,16 @@ def parse_endpoint_details(openapi_spec: Dict[str, Any], path: str, method: str,
 
 def parse_endpoint_names(openapi_data):
     return [endpoints for endpoints in openapi_data["paths"]]
+
+def parse_string_to_list(raw: str) -> list:
+    if not raw or not isinstance(raw, str):
+        relative_paths = []
+    else:
+        try:
+            relative_paths = json.loads(raw)
+        except json.JSONDecodeError:
+            try:
+                relative_paths = ast.literal_eval(raw)
+            except Exception:
+                relative_paths = []
+    return relative_paths

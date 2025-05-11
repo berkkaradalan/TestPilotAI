@@ -6,11 +6,11 @@ from app.config import api_key_utils
 from app.api.run import read_json_file, validate_open_api, get_tree_output
 from app.api.openrouter import get_openrouter_models, select_model, convert_scenarios_dict_to_list, select_scenarios_to_run, send_request_to_openrouter, user_selection_fuzzy
 from app.api.prompts import pytest_test_write_prompt
-from app.api.parser import parse_open_api, find_auth_endpoint, parse_endpoint_names, parse_single_endpoint
-from app.api.test_runner import run_tests_safely, attempt_test_fix_loop
+from app.api.parser import parse_open_api, parse_endpoint_names, parse_single_endpoint, parse_string_to_list
+from app.api.test_runner import attempt_test_fix_loop
 from app.api.file_functions import append_test_code_to_file
 
-def get_args():
+def get_args(): 
     parser = argparse.ArgumentParser(description='OpenRouter AI tool manager')
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
@@ -62,15 +62,20 @@ def process_command_line_args(args:argparse.Namespace, parser:argparse.ArgumentP
             chosen = select_model(model_list)
             print(f"\nSelected model: {chosen}")
 
-
         parsed_open_api_data = parse_open_api(openapi_data=openapi_file_data, api_key=api_key_utils.get_api_key(), open_router_models=chosen)
         test_scenarios = convert_scenarios_dict_to_list(scenarios_dict=json.loads(parsed_open_api_data))
-        chosen_tests = select_scenarios_to_run(test_scenarios)
-
         
+        chosen_tests = select_scenarios_to_run(test_scenarios)        
         for chosen_test in tqdm(chosen_tests, desc="🤖 Generating Test Code", unit="endpoint"):
-            test_prompt = pytest_test_write_prompt + "\n\n" + chosen_test["test_scenario"] + "\n\n" + "open api data of the project:\n" + chosen_test["parsed_info"] + "\n\n" +"tree struct of the project:\n" + get_tree_output(args.project_path, ignore_dirs=[".git", "__pycache__", ".idea", ".vscode", ".pytest_cache", ".mypy_cache"]) + "\n\n" + "auth_provider_endpoints" + "\n" + auth_token_endpoint_prompt + "\n" + auth_register_endpoint_prompt
-            
+            relative_paths = parse_string_to_list(chosen_test["relative_paths"])
+
+            if relative_paths:
+                related_endpoints_parsed_data = "\n\nRelated Endpoints:\n"
+                for relative_path in relative_paths:
+                    related_endpoints_parsed_data += parse_single_endpoint(openapi_data=openapi_file_data, endpoint_name=relative_path)
+
+            test_prompt = pytest_test_write_prompt + "\n\nTest scenario:\n" + chosen_test["test_scenario"] + "\n\n" + "open api data of the project:\n" + chosen_test["parsed_info"] + "\n\n" +"tree struct of the project:\n" + get_tree_output(args.project_path, ignore_dirs=[".git", "__pycache__", ".idea", ".vscode", ".pytest_cache", ".mypy_cache"]) + "\n\n" + "Auth token endpoint:\n" + "\n" + auth_token_endpoint_prompt + "\nAuth register endpoint:\n" + auth_register_endpoint_prompt + related_endpoints_parsed_data
+
             code_from_ai = send_request_to_openrouter(api_key=api_key_utils.get_api_key(), model_name=chosen, prompt=test_prompt)
             test_runner_result = attempt_test_fix_loop(api_key=api_key_utils.get_api_key(),
                                                        model_name=chosen,
@@ -79,7 +84,9 @@ def process_command_line_args(args:argparse.Namespace, parser:argparse.ArgumentP
                                                        tree_struct=get_tree_output(args.project_path, ignore_dirs=[".git", "__pycache__", ".idea", ".vscode", ".pytest_cache", ".mypy_cache"]),
                                                        project_path=str(args.project_path),
                                                        auth_token_endpoint_prompt=auth_token_endpoint_prompt,
-                                                       auth_register_endpoint_prompt=auth_register_endpoint_prompt)
+                                                       auth_register_endpoint_prompt=auth_register_endpoint_prompt,
+                                                       related_endpoints_prompt=related_endpoints_parsed_data)
+            
             append_test_code_to_file(test_code=str(test_runner_result), project_path=str(args.project_path), filename=args.save_as)
             
     else:
