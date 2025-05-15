@@ -9,5 +9,5 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("\nExited by user.")  # Veya sadece `pass` yapabilirsin
+        print("\nExited by user.")
         sys.exit(0)
