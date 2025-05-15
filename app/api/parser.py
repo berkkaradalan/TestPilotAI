@@ -1,9 +1,9 @@
 import ast
-from app.api.openrouter import send_request_to_openrouter, get_relative_endpoints
+from api.openrouter import send_request_to_openrouter, get_relative_endpoints
 import json
 from tqdm import tqdm
 from typing import Optional, Dict, Any
-from app.api.prompts import pytest_test_scenarios_prompt
+from api.prompts import pytest_test_scenarios_prompt
 
 def parse_single_endpoint(openapi_data: dict,endpoint_name: str,) -> str:
     parsed_open_api_data = {}
@@ -28,8 +28,8 @@ def parse_single_endpoint(openapi_data: dict,endpoint_name: str,) -> str:
                 .get("schema", {})
                 .get("$ref")
             )
-            # parsed_open_api_string += f"    Request Body Schema: {request_schema_ref}\n"
-            parsed_open_api_string += f"    Request Body Schema: {get_response_schema(openapi_data=openapi_data, schema_name=request_schema_ref.split("/")[-1])}\n"
+            parsed_open_api_string += f"    Request Body Schema: {request_schema_ref}\n"
+            # parsed_open_api_string += f"    Request Body Schema: {get_response_schema(openapi_data=openapi_data, schema_name=request_schema_ref.split("/")[-1])}\n"
         
         if 'security' in method_data:
             parsed_open_api_string += "    Security Requirements:\n"

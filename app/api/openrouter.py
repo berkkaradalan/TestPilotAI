@@ -3,7 +3,7 @@ from InquirerPy.base.control import Choice
 import requests
 import json
 from typing import List, Dict
-from app.api.prompts import semantic_endpoint_extraction_prompt
+from api.prompts import semantic_endpoint_extraction_prompt
 
 def select_model(models):
     return inquirer.fuzzy(

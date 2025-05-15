@@ -24,7 +24,7 @@ def install_requirements_txt(project_path: str) -> bool:
             print("✅ requirements.txt packages installed")
             return True
         except subprocess.CalledProcessError as e:
-            print("❌ Failed to install requirements.txt. Error output:\n{e.output}")
+            print(f"❌ Failed to install requirements.txt. Error output:\n{e.output}")
             return False
         except subprocess.TimeoutExpired:
             print("⏰ requirements.txt installation timed out")
@@ -87,7 +87,7 @@ def install_packages(packages: Set[str], timeout: int = 60) -> bool:
         print(f"✅ Successfully installed packages")
         return True
     except subprocess.CalledProcessError as e:
-        print(f"❌ Failed to install packages. Error output:\n{e.output}")
+        print(f"❌ Failed to install packages. Error output:\n {e.output}")
         return False
     except subprocess.TimeoutExpired:
         print(f"⏰ Package installation timed out after {timeout} seconds")

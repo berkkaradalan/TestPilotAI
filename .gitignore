@@ -178,3 +178,5 @@ cython_debug/
 launch.json
 
 test.py
+
+*.json*

@@ -2,13 +2,13 @@ from tqdm import tqdm
 import sys
 import argparse
 import json
-from app.config import api_key_utils
-from app.api.run import read_json_file, validate_open_api, get_tree_output
-from app.api.openrouter import get_openrouter_models, select_model, convert_scenarios_dict_to_list, select_scenarios_to_run, send_request_to_openrouter, user_selection_fuzzy
-from app.api.prompts import pytest_test_write_prompt
-from app.api.parser import parse_open_api, parse_endpoint_names, parse_single_endpoint, parse_string_to_list
-from app.api.test_runner import attempt_test_fix_loop
-from app.api.file_functions import append_test_code_to_file
+from config import api_key_utils
+from api.run import read_json_file, validate_open_api, get_tree_output
+from api.openrouter import get_openrouter_models, select_model, convert_scenarios_dict_to_list, select_scenarios_to_run, send_request_to_openrouter, user_selection_fuzzy
+from api.prompts import pytest_test_write_prompt
+from api.parser import parse_open_api, parse_endpoint_names, parse_single_endpoint, parse_string_to_list
+from api.test_runner import attempt_test_fix_loop
+from api.file_functions import append_test_code_to_file
 
 def get_args(): 
     parser = argparse.ArgumentParser(description='OpenRouter AI tool manager')
