@@ -25,6 +25,11 @@ def get_args():
     run_parser.add_argument('--project-path', required=True, help='Path of your backend project')
     run_parser.add_argument('--save-as', required=True, help='Name of the file to save the test file ')
 
+    set_attempts_parser = subparsers.add_parser('set-max-attempts', help='Set the maximum number of attempts for test fix loop')
+    set_attempts_parser.add_argument('--value', required=True, type=int, help='Maximum number of test fix attempts')
+
+    subparsers.add_parser('get-max-attempts', help='Get the current maximum number of test fix attempts')
+
     args = parser.parse_args()
     return parser, args
 
@@ -35,6 +40,11 @@ def process_command_line_args(args:argparse.Namespace, parser:argparse.ArgumentP
         print(api_key_utils.get_api_key_for_user())
     elif args.command == 'delete-apikey':
         print(api_key_utils.delete_api_key())
+    elif args.command == 'set-max-attempts':
+        print(api_key_utils.set_max_attempts(args.value))  # args.value int olacak
+    elif args.command == 'get-max-attempts':
+        print("♻️ OpenRouter Max Attempts :  " + str(api_key_utils.get_max_attempts()))
+
     elif args.command == 'run':
         if not api_key_utils.check_api_key():
             print("🚨 API key not set. Please set it using --set-apikey.")
@@ -50,10 +60,10 @@ def process_command_line_args(args:argparse.Namespace, parser:argparse.ArgumentP
         endpoints = parse_endpoint_names(openapi_data=openapi_file_data)
         auth_token_endpoint = user_selection_fuzzy(given_choices=["[None]"]+endpoints)
         auth_token_endpoint_prompt = ("Auth token related endpoint given by user \n" + parse_single_endpoint(openapi_data=openapi_file_data, endpoint_name=auth_token_endpoint)) if auth_token_endpoint else ""
-        print("🔐 auth_token_endpoint", auth_token_endpoint)
+        print("🔑 auth_token_endpoint", auth_token_endpoint)
         auth_register_endpoint = user_selection_fuzzy(given_choices=["[None]"]+endpoints)
         auth_register_endpoint_prompt = ("Auth register related endpoint given by user \n" + parse_single_endpoint(openapi_data=openapi_file_data, endpoint_name=auth_register_endpoint)) if auth_register_endpoint else ""
-        print("✍ auth_register_endpoint", auth_register_endpoint)
+        print("📋 auth_register_endpoint", auth_register_endpoint)
         
         model_list = get_openrouter_models(api_key=api_key_utils.get_api_key())
         if not model_list:
@@ -85,7 +95,8 @@ def process_command_line_args(args:argparse.Namespace, parser:argparse.ArgumentP
                                                        project_path=str(args.project_path),
                                                        auth_token_endpoint_prompt=auth_token_endpoint_prompt,
                                                        auth_register_endpoint_prompt=auth_register_endpoint_prompt,
-                                                       related_endpoints_prompt=related_endpoints_parsed_data)
+                                                       related_endpoints_prompt=related_endpoints_parsed_data,
+                                                       max_attempts=api_key_utils.get_max_attempts())
             
             append_test_code_to_file(test_code=str(test_runner_result), project_path=str(args.project_path), filename=args.save_as)
             

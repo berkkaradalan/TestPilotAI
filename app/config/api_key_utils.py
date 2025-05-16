@@ -32,3 +32,11 @@ def get_default_model() -> Optional[str]:
 
 def check_api_key() -> bool:
     return keyring.get_password(SERVICE_NAME, "api_key")
+
+def set_max_attempts(max_attempts: int) -> str:
+    keyring.set_password(SERVICE_NAME, "max_attempts", str(max_attempts))
+    return f"✅ Maximum attempts set to {max_attempts}."
+
+def get_max_attempts() -> Optional[int]:
+    max_attempts = keyring.get_password(SERVICE_NAME, "max_attempts")
+    return int(max_attempts) if max_attempts else 10
