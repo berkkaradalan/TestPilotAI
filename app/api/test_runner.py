@@ -1,3 +1,4 @@
+import os
 import re
 import sys
 import subprocess
@@ -8,7 +9,7 @@ from .openrouter import send_request_to_openrouter
 from .prompts import pytest_error_prompt
 
 
-def install_requirements_txt(project_path: str) -> bool:
+def install_requirements_txt(project_path: str, python_venv: str = None) -> bool:
     req_file = Path(project_path) / "requirements.txt"
     if req_file.exists():
         print("📦 Installing requirements.txt packages...")
@@ -93,12 +94,20 @@ def install_packages(packages: Set[str], timeout: int = 60) -> bool:
         print(f"⏰ Package installation timed out after {timeout} seconds")
         return False
 
-def run_tests_safely(test_code: str, project_path: str) -> tuple[str, bool]:
-    if not install_requirements_txt(project_path):
-        return "", False
-    required_packages = detect_required_packages(test_code)
-    if not install_packages(required_packages):
-        return "", False
+def run_tests_safely(test_code: str, project_path: str, python_venv: str = None) -> tuple[str, bool]:
+    if python_venv:
+        python_exec = Path(python_venv) / ("Scripts" if os.name == "nt" else "bin") / "python"
+        if not python_exec.exists():
+            return f"🚨 Python executable not found in venv: {python_exec}", False
+    else:
+        python_exec = sys.executable  # fallback (e.g. during dev/test)
+
+        if not install_requirements_txt(project_path, str(python_exec)):
+            return "", False
+
+        required_packages = detect_required_packages(test_code)
+        if not install_packages(required_packages):
+            return "", False
 
     test_dir = Path(project_path)
     test_file = test_dir / "test_runner.py"
@@ -106,7 +115,7 @@ def run_tests_safely(test_code: str, project_path: str) -> tuple[str, bool]:
         test_file.write_text(test_code, encoding="utf-8")
 
         result = subprocess.run(
-            ["python3", "test_runner.py"],
+            [str(python_exec), "test_runner.py"],
             cwd=project_path,
             capture_output=True,
             text=True
@@ -133,6 +142,7 @@ def attempt_test_fix_loop(
     auth_token_endpoint_prompt: str = "",
     auth_register_endpoint_prompt: str = "",
     related_endpoints_prompt: str = "",
+    python_venv: str = None,
 ):
     attempt = 0
     current_test_code = test_code
@@ -140,7 +150,7 @@ def attempt_test_fix_loop(
     while attempt < max_attempts:
         print(f"🚀 Attempt {attempt + 1}/{max_attempts}")
         
-        test_run_output, execution_success = run_tests_safely(test_code=current_test_code, project_path=project_path)
+        test_run_output, execution_success = run_tests_safely(test_code=current_test_code, project_path=project_path, python_venv=python_venv)
         
         if execution_success and not any(keyword in test_run_output for keyword in ["FAILED", "ERROR", "assert", "AssertionError"]):
             print("✅ All tests passed successfully!")

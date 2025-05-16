@@ -24,6 +24,7 @@ def get_args():
     run_parser.add_argument('--openapi-path', required=True, help='Path to OpenAPI spec file')
     run_parser.add_argument('--project-path', required=True, help='Path of your backend project')
     run_parser.add_argument('--save-as', required=True, help='Name of the file to save the test file ')
+    run_parser.add_argument('--venv-path', required=False, help='Path to your virtual environment (e.g. ./venv)')
 
     set_attempts_parser = subparsers.add_parser('set-max-attempts', help='Set the maximum number of attempts for test fix loop')
     set_attempts_parser.add_argument('--value', required=True, type=int, help='Maximum number of test fix attempts')
@@ -41,11 +42,14 @@ def process_command_line_args(args:argparse.Namespace, parser:argparse.ArgumentP
     elif args.command == 'delete-apikey':
         print(api_key_utils.delete_api_key())
     elif args.command == 'set-max-attempts':
-        print(api_key_utils.set_max_attempts(args.value))  # args.value int olacak
+        print(api_key_utils.set_max_attempts(args.value))
     elif args.command == 'get-max-attempts':
         print("♻️ OpenRouter Max Attempts :  " + str(api_key_utils.get_max_attempts()))
 
     elif args.command == 'run':
+        python_venv = None
+        if args.venv_path:
+            python_venv = args.venv_path
         if not api_key_utils.check_api_key():
             print("🚨 API key not set. Please set it using --set-apikey.")
             sys.exit(1)
@@ -56,6 +60,7 @@ def process_command_line_args(args:argparse.Namespace, parser:argparse.ArgumentP
         if not api_key_utils.get_api_key():
             print("🚨 API key not set. Please set it using --set-apikey.")
             sys.exit(1)
+        
         
         endpoints = parse_endpoint_names(openapi_data=openapi_file_data)
         auth_token_endpoint = user_selection_fuzzy(given_choices=["[None]"]+endpoints)
@@ -96,7 +101,8 @@ def process_command_line_args(args:argparse.Namespace, parser:argparse.ArgumentP
                                                        auth_token_endpoint_prompt=auth_token_endpoint_prompt,
                                                        auth_register_endpoint_prompt=auth_register_endpoint_prompt,
                                                        related_endpoints_prompt=related_endpoints_parsed_data,
-                                                       max_attempts=api_key_utils.get_max_attempts())
+                                                       max_attempts=api_key_utils.get_max_attempts(),
+                                                       python_venv=python_venv)
             
             append_test_code_to_file(test_code=str(test_runner_result), project_path=str(args.project_path), filename=args.save_as)
             
