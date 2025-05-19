@@ -59,7 +59,7 @@ def detect_required_packages(test_code: str) -> Set[str]:
     
     return base_requirements.union(detected)
 
-def install_packages(packages: Set[str], timeout: int = 60) -> bool:
+def install_packages(packages: Set[str], timeout: int = 60, python_venv:str = sys.executable) -> bool:
     if not packages:
         return True
         
@@ -71,7 +71,7 @@ def install_packages(packages: Set[str], timeout: int = 60) -> bool:
     
     try:
         cmd = [
-            sys.executable, "-m", "pip", "install",
+            python_venv, "-m", "pip", "install",
             "--disable-pip-version-check",
             "--no-warn-script-location",
             *missing
@@ -100,20 +100,19 @@ def run_tests_safely(test_code: str, project_path: str, python_venv: str = None)
         if not python_exec.exists():
             return f"🚨 Python executable not found in venv: {python_exec}", False
     else:
-        python_exec = sys.executable  # fallback (e.g. during dev/test)
+        python_exec = sys.executable
 
         if not install_requirements_txt(project_path, str(python_exec)):
             return "", False
 
-        required_packages = detect_required_packages(test_code)
-        if not install_packages(required_packages):
-            return "", False
+    if not install_packages(packages=detect_required_packages(test_code), python_venv=str(python_exec)):
+        print("❌ Failed to install required packages.")
+        return "", False
 
     test_dir = Path(project_path)
     test_file = test_dir / "test_runner.py"
     try:
         test_file.write_text(test_code, encoding="utf-8")
-
         result = subprocess.run(
             [str(python_exec), "test_runner.py"],
             cwd=project_path,
