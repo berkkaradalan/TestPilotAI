@@ -88,7 +88,7 @@ def select_scenarios_to_run(scenarios: List[Dict[str, str]]) -> List[Dict[str, s
 
 def user_selection_fuzzy(given_choices: List[str]):
     selected = inquirer.fuzzy(
-        message="Select auth token endpoint [Optional]: (fuzzy search):",
+        message="Select auth login endpoint [Optional]: (fuzzy search):",
         choices=given_choices,
         default=None,
     ).execute()
@@ -96,7 +96,7 @@ def user_selection_fuzzy(given_choices: List[str]):
 
 def user_selection_checkbox(given_choices: List[str]):
     selected = inquirer.checkbox(
-        message="Select auth token endpoint [Optional]: (fuzzy search):",
+        message="Select auth register endpoint [Optional]: (fuzzy search):",
         choices=given_choices,
         default=None,
     ).execute()

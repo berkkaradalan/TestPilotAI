@@ -7,12 +7,14 @@ from pathlib import Path
 from typing import Set
 from .openrouter import send_request_to_openrouter
 from .prompts import pytest_error_prompt
+from config.rich_console import rich_console
+from api.file_functions import save_prompts
 
 
 def install_requirements_txt(project_path: str, python_venv: str = None) -> bool:
     req_file = Path(project_path) / "requirements.txt"
     if req_file.exists():
-        print("📦 Installing requirements.txt packages...")
+        rich_console.info_string("Installing requirements.txt packages...")
         try:
             result = subprocess.run(
                 [sys.executable, "-m", "pip", "install", "-r", str(req_file)],
@@ -22,16 +24,16 @@ def install_requirements_txt(project_path: str, python_venv: str = None) -> bool
                 text=True,
                 timeout=120
             )
-            print("✅ requirements.txt packages installed")
+            rich_console.success_string("requirements.txt packages installed")
             return True
         except subprocess.CalledProcessError as e:
-            print(f"❌ Failed to install requirements.txt. Error output:\n{e.output}")
+            rich_console.error_string(f"❌ Failed to install requirements.txt. Error output:\n{e.output}")
             return False
         except subprocess.TimeoutExpired:
-            print("⏰ requirements.txt installation timed out")
+            rich_console.warning_string("⏰ requirements.txt installation timed out")
             return False
     else:
-        print("ℹ️ No requirements.txt file found at {project_path}")
+        rich_console.info_string(f"ℹ️ No requirements.txt file found at {project_path}")
         return True
 
 
@@ -67,7 +69,7 @@ def install_packages(packages: Set[str], timeout: int = 60, python_venv:str = sy
     if not missing:
         return True
 
-    print(f"🔍 Missing packages detected: {', '.join(missing)}")
+    rich_console.info_string(f"🔍 Missing packages detected: {', '.join(missing)}")
     
     try:
         cmd = [
@@ -85,13 +87,14 @@ def install_packages(packages: Set[str], timeout: int = 60, python_venv:str = sy
             text=True,
             timeout=timeout
         )
-        print(f"✅ Successfully installed packages")
+        rich_console.success_string("✅ Successfully installed packages")
         return True
     except subprocess.CalledProcessError as e:
-        print(f"❌ Failed to install packages. Error output:\n {e.output}")
+        rich_console.error_string(f"❌ Failed to install packages. Error output:\n {e.output}")
         return False
     except subprocess.TimeoutExpired:
-        print(f"⏰ Package installation timed out after {timeout} seconds")
+        rich_console.warning_string(f"⏰ Package installation timed out after {timeout} seconds")
+
         return False
 
 def run_tests_safely(test_code: str, project_path: str, python_venv: str = None) -> tuple[str, bool]:
@@ -106,7 +109,7 @@ def run_tests_safely(test_code: str, project_path: str, python_venv: str = None)
             return "", False
 
     if not install_packages(packages=detect_required_packages(test_code), python_venv=str(python_exec)):
-        print("❌ Failed to install required packages.")
+        rich_console.error_string("❌ Failed to install required packages.")
         return "", False
 
     test_dir = Path(project_path)
@@ -128,7 +131,7 @@ def run_tests_safely(test_code: str, project_path: str, python_venv: str = None)
         try:
             test_file.unlink()
         except Exception as e:
-            print(f"⚠️ Error cleaning up test file: {str(e)}")
+            rich_console.warning_string(f"⚠️ Error cleaning up test file: {str(e)}")
 
 def attempt_test_fix_loop(
     api_key: str,
@@ -147,28 +150,27 @@ def attempt_test_fix_loop(
     current_test_code = test_code
 
     while attempt < max_attempts:
-        print(f"🚀 Attempt {attempt + 1}/{max_attempts}")
+        rich_console.info_string(f"Attempt {attempt + 1}/{max_attempts}")
         
         test_run_output, execution_success = run_tests_safely(test_code=current_test_code, project_path=project_path, python_venv=python_venv)
-        
         if execution_success and not any(keyword in test_run_output for keyword in ["FAILED", "ERROR", "assert", "AssertionError"]):
-            print("✅ All tests passed successfully!")
+            rich_console.success_string("All tests passed successfully!")
             return current_test_code
         
-        print(f"⚠️ Tests had issues in attempt {attempt + 1}:")
+        rich_console.warning_string(f"Tests had issues in attempt {attempt + 1}:")
         error_lines = [line for line in test_run_output.splitlines() if any(kw in line for kw in ["FAILED", "ERROR", "assert", "AssertionError"])]
         for line in error_lines[:5]:
-            print(f"  {line}")
+            rich_console.error_string(f" {line}")
         
         if attempt + 1 >= max_attempts:
             user_input = input("⚠️  Maximum attempts reached. Do you want to continue? (y/n): ").strip().lower()
             if user_input == "y":
                 max_attempts += 10
             elif user_input == "n":
-                print("🛑 Stopping the fixing process without saving failed test.")
+                rich_console.error_string("🛑 Stopping the fixing process without saving failed test.")
                 return None
             else:
-                print("❓ Please enter 'y' or 'n'.")
+                rich_console.warning_string("❓ Please enter 'y' or 'n'.")
                 continue
         
         prompt = (

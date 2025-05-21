@@ -13,7 +13,7 @@ setup(
     install_requires=install_requires,
     entry_points={
         "console_scripts": [
-            "TestPilotAI = main:main",
+            "testpilotai = main:main",
         ],
     },
 )

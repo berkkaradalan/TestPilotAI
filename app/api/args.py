@@ -9,6 +9,7 @@ from api.prompts import pytest_test_write_prompt
 from api.parser import parse_open_api, parse_endpoint_names, parse_single_endpoint, parse_string_to_list
 from api.test_runner import attempt_test_fix_loop
 from api.file_functions import append_test_code_to_file
+from config.rich_console import rich_console
 
 def get_args(): 
     parser = argparse.ArgumentParser(description='OpenRouter AI tool manager')
@@ -36,46 +37,47 @@ def get_args():
 
 def process_command_line_args(args:argparse.Namespace, parser:argparse.ArgumentParser):
     if args.command == 'set-apikey':
-        print(api_key_utils.set_api_key(args.api_key))
+        rich_console.success_string(api_key_utils.set_api_key(args.api_key))
     elif args.command == 'get-apikey':
-        print(api_key_utils.get_api_key_for_user())
+        rich_console.info_string(api_key_utils.get_api_key_for_user())
     elif args.command == 'delete-apikey':
-        print(api_key_utils.delete_api_key())
+        rich_console.success_string(api_key_utils.delete_api_key())
     elif args.command == 'set-max-attempts':
-        print(api_key_utils.set_max_attempts(args.value))
+        rich_console.success_string(api_key_utils.set_max_attempts(args.value))
     elif args.command == 'get-max-attempts':
-        print("♻️ OpenRouter Max Attempts :  " + str(api_key_utils.get_max_attempts()))
+        rich_console.info_string(f"♻️ OpenRouter Max Attempts : {api_key_utils.get_max_attempts()}")
 
     elif args.command == 'run':
         python_venv = None
         if args.venv_path:
             python_venv = args.venv_path
         if not api_key_utils.check_api_key():
-            print("🚨 API key not set. Please set it using --set-apikey.")
+            rich_console.error_string("API key not set. Please set it using --set-apikey.")
             sys.exit(1)
         openapi_file_data = read_json_file(args.openapi_path)
         if not validate_open_api(openapi_file_data):
-            print("🚨 Invalid OpenAPI file")
+            rich_console.error_string("Invalid OpenAPI file")
             sys.exit(1)
         if not api_key_utils.get_api_key():
-            print("🚨 API key not set. Please set it using --set-apikey.")
+            rich_console.error_string("API key not set. Please set it using --set-apikey.")
             sys.exit(1)
         
         
         endpoints = parse_endpoint_names(openapi_data=openapi_file_data)
         auth_token_endpoint = user_selection_fuzzy(given_choices=["[None]"]+endpoints)
-        auth_token_endpoint_prompt = ("Auth token related endpoint given by user \n" + parse_single_endpoint(openapi_data=openapi_file_data, endpoint_name=auth_token_endpoint)) if auth_token_endpoint else ""
-        print("🔑 auth_token_endpoint", auth_token_endpoint)
+        auth_token_endpoint_prompt = ("User gave this endpoint to get authentication token \n" + parse_single_endpoint(openapi_data=openapi_file_data, endpoint_name=auth_token_endpoint)) if auth_token_endpoint else ""
+        rich_console.info_string(f"🔑 auth_token_endpoint: {auth_token_endpoint}")
         auth_register_endpoint = user_selection_fuzzy(given_choices=["[None]"]+endpoints)
-        auth_register_endpoint_prompt = ("Auth register related endpoint given by user \n" + parse_single_endpoint(openapi_data=openapi_file_data, endpoint_name=auth_register_endpoint)) if auth_register_endpoint else ""
-        print("📋 auth_register_endpoint", auth_register_endpoint)
+        auth_register_endpoint_prompt = ("User gave this endpoint to register. You don't have a test user instead you have to create one using this endpoint \n" + parse_single_endpoint(openapi_data=openapi_file_data, endpoint_name=auth_register_endpoint)) if auth_register_endpoint else ""
+        rich_console.info_string(f"📋 auth_register_endpoint: {auth_register_endpoint}")
         
         model_list = get_openrouter_models(api_key=api_key_utils.get_api_key())
         if not model_list:
-            print("🚨🤖 OpenRouter Error: No models found.")
+            rich_console.error_string("🤖 OpenRouter Error: No models found.")
+            sys.exit(1)
         else:
             chosen = select_model(model_list)
-            print(f"\nSelected model: {chosen}")
+            rich_console.model_selection_result(chosen)
 
         parsed_open_api_data = parse_open_api(openapi_data=openapi_file_data, api_key=api_key_utils.get_api_key(), open_router_models=chosen)
         test_scenarios = convert_scenarios_dict_to_list(scenarios_dict=json.loads(parsed_open_api_data))

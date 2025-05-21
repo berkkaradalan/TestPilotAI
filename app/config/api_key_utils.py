@@ -5,7 +5,7 @@ SERVICE_NAME = "openrouter"
 
 def set_api_key(api_key: str) -> str:
     keyring.set_password(SERVICE_NAME, "api_key", api_key)
-    return "✅ OpenRouter API key set successfully."
+    return " OpenRouter API key set successfully."
 
 def get_api_key_for_user() -> Optional[str]:
     api_key = keyring.get_password(SERVICE_NAME, "api_key")
