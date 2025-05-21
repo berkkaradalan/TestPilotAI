@@ -8,7 +8,6 @@ from typing import Set
 from .openrouter import send_request_to_openrouter
 from .prompts import pytest_error_prompt
 from config.rich_console import rich_console
-from api.file_functions import save_prompts
 
 
 def install_requirements_txt(project_path: str, python_venv: str = None) -> bool:
