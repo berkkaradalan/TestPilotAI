@@ -3,13 +3,12 @@ import sys
 import argparse
 import json
 from config import api_key_utils
-from api.run import read_json_file, validate_open_api, get_tree_output
 from api.openrouter import get_openrouter_models, select_model, convert_scenarios_dict_to_list, select_scenarios_to_run, send_request_to_openrouter, user_selection_fuzzy
 from api.prompts.prompts import FastApiPrompts
 from api.parser import parse_open_api, parse_endpoint_names, parse_single_endpoint, parse_string_to_list
 # from api.test_runner import attempt_test_fix_loop
 from api.test_runner.test_runner import FastAPITestRunner
-from api.file_functions import append_test_code_to_file
+from api.file_functions.file_functions import FileFunctions
 from config.rich_console import rich_console
 
 def get_args(): 
@@ -55,8 +54,8 @@ def process_command_line_args(args:argparse.Namespace, parser:argparse.ArgumentP
         if not api_key_utils.check_api_key():
             rich_console.error_string("API key not set. Please set it using --set-apikey.")
             sys.exit(1)
-        openapi_file_data = read_json_file(args.openapi_path)
-        if not validate_open_api(openapi_file_data):
+        openapi_file_data = FileFunctions.read_json_file(args.openapi_path)
+        if not FileFunctions.validate_open_api(openapi_file_data):
             rich_console.error_string("Invalid OpenAPI file")
             sys.exit(1)
         if not api_key_utils.get_api_key():
@@ -92,14 +91,14 @@ def process_command_line_args(args:argparse.Namespace, parser:argparse.ArgumentP
                 for relative_path in relative_paths:
                     related_endpoints_parsed_data += parse_single_endpoint(openapi_data=openapi_file_data, endpoint_name=relative_path)
 
-            test_prompt = FastApiPrompts.pytest_test_write_prompt + "\n\nTest scenario:\n" + chosen_test["test_scenario"] + "\n\n" + "open api data of the project:\n" + chosen_test["parsed_info"] + "\n\n" +"tree struct of the project:\n" + get_tree_output(args.project_path, ignore_dirs=[".git", "__pycache__", ".idea", ".vscode", ".pytest_cache", ".mypy_cache"]) + "\n\n" + "Auth token endpoint:\n" + "\n" + auth_token_endpoint_prompt + "\nAuth register endpoint:\n" + auth_register_endpoint_prompt + related_endpoints_parsed_data
+            test_prompt = FastApiPrompts.pytest_test_write_prompt + "\n\nTest scenario:\n" + chosen_test["test_scenario"] + "\n\n" + "open api data of the project:\n" + chosen_test["parsed_info"] + "\n\n" +"tree struct of the project:\n" + FileFunctions.get_tree_output(args.project_path, ignore_dirs=[".git", "__pycache__", ".idea", ".vscode", ".pytest_cache", ".mypy_cache"]) + "\n\n" + "Auth token endpoint:\n" + "\n" + auth_token_endpoint_prompt + "\nAuth register endpoint:\n" + auth_register_endpoint_prompt + related_endpoints_parsed_data
 
             code_from_ai = send_request_to_openrouter(api_key=api_key_utils.get_api_key(), model_name=chosen, prompt=test_prompt)
             test_runner_result =FastAPITestRunner. attempt_test_fix_loop(api_key=api_key_utils.get_api_key(),
                                                        model_name=chosen,
                                                        test_code=code_from_ai,
                                                        test_scenario=chosen_test["test_scenario"],
-                                                       tree_struct=get_tree_output(args.project_path, ignore_dirs=[".git", "__pycache__", ".idea", ".vscode", ".pytest_cache", ".mypy_cache"]),
+                                                       tree_struct=FileFunctions.get_tree_output(args.project_path, ignore_dirs=[".git", "__pycache__", ".idea", ".vscode", ".pytest_cache", ".mypy_cache"]),
                                                        project_path=str(args.project_path),
                                                        auth_token_endpoint_prompt=auth_token_endpoint_prompt,
                                                        auth_register_endpoint_prompt=auth_register_endpoint_prompt,
@@ -107,7 +106,7 @@ def process_command_line_args(args:argparse.Namespace, parser:argparse.ArgumentP
                                                        max_attempts=api_key_utils.get_max_attempts(),
                                                        python_venv=python_venv)
             
-            append_test_code_to_file(test_code=str(test_runner_result), project_path=str(args.project_path), filename=args.save_as)
+            FileFunctions.append_test_code_to_file(test_code=str(test_runner_result), project_path=str(args.project_path), filename=args.save_as)
             
     else:
         parser.print_help()
