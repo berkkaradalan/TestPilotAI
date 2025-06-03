@@ -1,5 +1,5 @@
 import ast
-from api.openrouter import send_request_to_openrouter, get_relative_endpoints
+from api.openrouter.openrouter import send_request_to_openrouter, get_relative_endpoints
 import json
 from tqdm import tqdm
 from typing import Optional, Dict, Any

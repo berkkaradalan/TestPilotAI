@@ -5,7 +5,7 @@ import subprocess
 from importlib.util import find_spec
 from pathlib import Path
 from typing import Set
-from api.openrouter import send_request_to_openrouter
+from api.openrouter.openrouter import send_request_to_openrouter
 from api.prompts.prompts import FastApiPrompts
 from config.rich_console import rich_console
 
