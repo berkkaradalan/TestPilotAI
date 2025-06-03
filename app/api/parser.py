@@ -3,7 +3,27 @@ from api.openrouter import send_request_to_openrouter, get_relative_endpoints
 import json
 from tqdm import tqdm
 from typing import Optional, Dict, Any
-from api.prompts import pytest_test_scenarios_prompt
+from .prompts.prompts import FastApiPrompts
+
+def request_body_schema_parser(openapi_data: dict, schema_ref: str) -> str:
+    output = ""
+    if not schema_ref or not schema_ref.startswith("#/components/schemas/"):
+        return output
+    
+    schema_name = schema_ref.split("/")[-1]
+    schema = openapi_data.get("components", {}).get("schemas", {}).get(schema_name, {})
+    
+    if "properties" not in schema:
+        return f"     Unable to parse schema: {schema_name}\n"
+
+    for prop_name, prop_info in schema["properties"].items():
+        prop_type = prop_info.get("type", "Unknown")
+        prop_title = prop_info.get("title", "")
+        output += f"     Schema Item: {prop_name}\n"
+        output += f"         Type: {prop_type}\n"
+        if prop_title:
+            output += f"         Title: {prop_title}\n"
+    return output
 
 def parse_single_endpoint(openapi_data: dict,endpoint_name: str,) -> str:
     parsed_open_api_data = {}
@@ -28,7 +48,10 @@ def parse_single_endpoint(openapi_data: dict,endpoint_name: str,) -> str:
                 .get("schema", {})
                 .get("$ref")
             )
-            parsed_open_api_string += f"    Request Body Schema: {request_schema_ref}\n"
+            # parsed_open_api_string += f"    Request Body Schema: {request_schema_ref}\n"
+            parsed_open_api_string += f"    Request Body Schema Ref: {request_schema_ref}\n"
+            parsed_open_api_string += f"    Request Body Schema:\n"
+            parsed_open_api_string += request_body_schema_parser(openapi_data=openapi_data, schema_ref=request_schema_ref)
             # parsed_open_api_string += f"    Request Body Schema: {get_response_schema(openapi_data=openapi_data, schema_name=request_schema_ref.split("/")[-1])}\n"
         
         if 'security' in method_data:
@@ -107,7 +130,7 @@ def parse_open_api(openapi_data: dict, api_key: Optional[str] = None, open_route
                     parsed_open_api_string += f"      - Name: {param['name']}, In: {param['in']}, Type: {param['schema']['type']}\n"
             parsed_open_api_string += "\n"
 
-        parsed_string_prompt = pytest_test_scenarios_prompt + "\n\n" + parsed_open_api_string
+        parsed_string_prompt = FastApiPrompts.pytest_test_scenarios_prompt + "\n\n" + parsed_open_api_string
         test_scenario = send_request_to_openrouter(
             api_key=api_key,
             model_name=open_router_models,

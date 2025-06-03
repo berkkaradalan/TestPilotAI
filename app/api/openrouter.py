@@ -3,7 +3,7 @@ from InquirerPy.base.control import Choice
 import requests
 import json
 from typing import List, Dict
-from api.prompts import semantic_endpoint_extraction_prompt
+from .prompts.prompts import FastApiPrompts
 
 def select_model(models):
     return inquirer.fuzzy(
@@ -103,5 +103,5 @@ def user_selection_checkbox(given_choices: List[str]):
     return None if selected == "[None]" else selected
 
 def get_relative_endpoints(endpoint_path:str, openapi_data: dict, api_key: str, open_router_model: str) -> List[str]:
-    prompt = semantic_endpoint_extraction_prompt + "\n\n" + "Endpoint : " + endpoint_path + "\n\n" + "OpenAPI Data: " + str(openapi_data)
+    prompt = FastApiPrompts.semantic_endpoint_extraction_prompt + "\n\n" + "Endpoint : " + endpoint_path + "\n\n" + "OpenAPI Data: " + str(openapi_data)
     return send_request_to_openrouter(api_key=api_key, model_name=open_router_model, prompt=prompt)
