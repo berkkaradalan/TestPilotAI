@@ -52,9 +52,8 @@ class ParserFunctions:
                     .get("$ref")
                 )
                 # parsed_open_api_string += f"    Request Body Schema: {request_schema_ref}\n"
-                parsed_open_api_string += f"    Request Body Schema Ref: {request_schema_ref}\n"
-                parsed_open_api_string += f"    Request Body Schema:\n"
-                parsed_open_api_string += ParserFunctions.request_body_schema_parser(openapi_data=openapi_data, schema_ref=request_schema_ref)
+                parsed_open_api_string += f"    Request Body Schema Ref:\n {ParserFunctions.request_body_schema_parser(openapi_data, request_schema_ref)}\n"
+                parsed_open_api_string += f"    Request Body Schema:\n {ParserFunctions.request_body_schema_parser(openapi_data=openapi_data, schema_ref=request_schema_ref)}"
                 # parsed_open_api_string += f"    Request Body Schema: {get_response_schema(openapi_data=openapi_data, schema_name=request_schema_ref.split("/")[-1])}\n"
             
             if 'security' in method_data:
