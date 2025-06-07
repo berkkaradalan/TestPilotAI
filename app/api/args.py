@@ -3,11 +3,9 @@ import sys
 import argparse
 import json
 from config import api_key_utils
-# from api.openrouter.openrouter import get_openrouter_models, select_model, convert_scenarios_dict_to_list, select_scenarios_to_run, send_request_to_openrouter, user_selection_fuzzy
 from api.openrouter.openrouter import OpenRouter
 from api.prompts.prompts import FastApiPrompts
-from api.parser import parse_open_api, parse_endpoint_names, parse_single_endpoint, parse_string_to_list
-# from api.test_runner import attempt_test_fix_loop
+from api.parser.parser import ParserFunctions
 from api.test_runner.test_runner import FastAPITestRunner
 from api.file_functions.file_functions import FileFunctions
 from config.rich_console import rich_console
@@ -64,12 +62,12 @@ def process_command_line_args(args:argparse.Namespace, parser:argparse.ArgumentP
             sys.exit(1)
         
         
-        endpoints = parse_endpoint_names(openapi_data=openapi_file_data)
+        endpoints = ParserFunctions.parse_endpoint_names(openapi_data=openapi_file_data)
         auth_token_endpoint = OpenRouter.user_selection_fuzzy(given_choices=["[None]"]+endpoints)
-        auth_token_endpoint_prompt = ("User gave this endpoint to get authentication token \n" + parse_single_endpoint(openapi_data=openapi_file_data, endpoint_name=auth_token_endpoint)) if auth_token_endpoint else ""
+        auth_token_endpoint_prompt = ("User gave this endpoint to get authentication token \n" + ParserFunctions.parse_single_endpoint(openapi_data=openapi_file_data, endpoint_name=auth_token_endpoint)) if auth_token_endpoint else ""
         rich_console.info_string(f"🔑 auth_token_endpoint: {auth_token_endpoint}")
         auth_register_endpoint = OpenRouter.user_selection_fuzzy(given_choices=["[None]"]+endpoints)
-        auth_register_endpoint_prompt = ("User gave this endpoint to register. You don't have a test user instead you have to create one using this endpoint \n" + parse_single_endpoint(openapi_data=openapi_file_data, endpoint_name=auth_register_endpoint)) if auth_register_endpoint else ""
+        auth_register_endpoint_prompt = ("User gave this endpoint to register. You don't have a test user instead you have to create one using this endpoint \n" + ParserFunctions.parse_single_endpoint(openapi_data=openapi_file_data, endpoint_name=auth_register_endpoint)) if auth_register_endpoint else ""
         rich_console.info_string(f"📋 auth_register_endpoint: {auth_register_endpoint}")
         
         model_list = OpenRouter.get_openrouter_models(api_key=api_key_utils.get_api_key())
@@ -80,17 +78,17 @@ def process_command_line_args(args:argparse.Namespace, parser:argparse.ArgumentP
             chosen = OpenRouter.select_model(model_list)
             rich_console.model_selection_result(chosen)
 
-        parsed_open_api_data = parse_open_api(openapi_data=openapi_file_data, api_key=api_key_utils.get_api_key(), open_router_models=chosen)
+        parsed_open_api_data = ParserFunctions.parse_open_api(openapi_data=openapi_file_data, api_key=api_key_utils.get_api_key(), open_router_models=chosen)
         test_scenarios = OpenRouter.convert_scenarios_dict_to_list(scenarios_dict=json.loads(parsed_open_api_data))
         
         chosen_tests = OpenRouter.select_scenarios_to_run(test_scenarios)        
         for chosen_test in tqdm(chosen_tests, desc="🤖 Generating Test Code", unit="endpoint"):
-            relative_paths = parse_string_to_list(chosen_test["relative_paths"])
+            relative_paths = ParserFunctions.parse_string_to_list(chosen_test["relative_paths"])
 
             if relative_paths:
                 related_endpoints_parsed_data = "\n\nRelated Endpoints:\n"
                 for relative_path in relative_paths:
-                    related_endpoints_parsed_data += parse_single_endpoint(openapi_data=openapi_file_data, endpoint_name=relative_path)
+                    related_endpoints_parsed_data += ParserFunctions.parse_single_endpoint(openapi_data=openapi_file_data, endpoint_name=relative_path)
 
             test_prompt = FastApiPrompts.pytest_test_write_prompt + "\n\nTest scenario:\n" + chosen_test["test_scenario"] + "\n\n" + "open api data of the project:\n" + chosen_test["parsed_info"] + "\n\n" +"tree struct of the project:\n" + FileFunctions.get_tree_output(args.project_path, ignore_dirs=[".git", "__pycache__", ".idea", ".vscode", ".pytest_cache", ".mypy_cache"]) + "\n\n" + "Auth token endpoint:\n" + "\n" + auth_token_endpoint_prompt + "\nAuth register endpoint:\n" + auth_register_endpoint_prompt + related_endpoints_parsed_data
 

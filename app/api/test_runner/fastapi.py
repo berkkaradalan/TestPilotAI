@@ -5,7 +5,7 @@ import subprocess
 from importlib.util import find_spec
 from pathlib import Path
 from typing import Set
-from api.openrouter.openrouter import send_request_to_openrouter
+from api.openrouter.openrouter import OpenRouter
 from api.prompts.prompts import FastApiPrompts
 from config.rich_console import rich_console
 
@@ -193,7 +193,7 @@ class FastAPITestRunner:
                 + related_endpoints_prompt
             )
 
-            fixed_code = send_request_to_openrouter(
+            fixed_code = OpenRouter.send_request_to_openrouter(
                 api_key=api_key,
                 model_name=model_name,
                 prompt=prompt
