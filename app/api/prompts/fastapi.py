@@ -26,16 +26,16 @@ class FastApiPrompts:
     You are a Senior Python developer with over 20 years of experience. Your task is to convert the given test case scenarios into actual pytest test functions.
 
     Requirements for your answer:
-        - Use FastAPI's built-in TestClient for synchronous testing.
-        - Never use localhost.
-        - Your response must contain only Python code — no markdown formatting or explanatory text.
+        - Use FastAPI's built-in TestClient for all API requests. Do not use any HTTP client other than TestClient.
+        - Never use localhost or requests library.
+        - Your response must contain only Python code — no markdown, no explanations, no examples.
         - Each test scenario must be implemented as a separate function.
         - Use pytest best practices, including clear function names and necessary assertions.
         - Include all required import statements at the top.
         - Include setup or fixtures if required (e.g., creating a blog before deleting it).
         - Use hardcoded values where necessary (e.g., dummy blog data).
         - If an endpoint returns a 422, assert the presence of the "detail" field in the response.
-        - Match the path and HTTP method exactly as provided in the scenario.
+        - Match the path and HTTP method exactly as provided in the scenario. Always send requests using `client.get(...)`, `client.post(...)`, etc.
         - Only use status codes that are explicitly defined in the provided scenario or OpenAPI schema.
 
     Advanced Authentication Handling:
@@ -70,14 +70,14 @@ class FastApiPrompts:
 
     Instructions:
         - Your response must contain only pure Python code. Do not use markdown formatting, code blocks, or explanations.
-        - Carefully review the provided test code and its corresponding error output.
+        - Carefully review and fix the test code using only TestClient for sending requests.
         - Fix the test code so that it passes all tests without errors.
-        - Use FastAPI's TestClient for API testing. Never use localhost or real HTTP calls.
+        - Use FastAPI's TestClient for **all** API requests. Never use localhost, `requests`, or external HTTP clients.
         - Follow best practices: clear function names, appropriate assertions, and necessary fixtures or setup.
         - Include all required import statements at the top.
         - Preserve the structure of the original test file unless changes are necessary to fix errors.
         - If an endpoint returns a 422, assert the presence of the "detail" field in the response.
-        - Only use status codes that are explicitly defined in the scenario or OpenAPI schema.
+        - Only use status codes explicitly defined in the scenario or OpenAPI schema. Avoid making up expected codes.
 
     Advanced Authentication Handling:
         - If an endpoint requires authentication (indicated by the OpenAPI "security" field):
