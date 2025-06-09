@@ -8,6 +8,7 @@ from typing import Set
 from api.openrouter.openrouter import OpenRouter
 from api.prompts.prompts import FastApiPrompts
 from config.rich_console import rich_console
+from api.file_functions.file_functions import FileFunctions
 
 class FastAPITestRunner:
     """
@@ -176,8 +177,8 @@ class FastAPITestRunner:
                 if user_input == "y":
                     max_attempts += 10
                 elif user_input == "n":
-                    rich_console.error_string("🛑 Stopping the fixing process without saving failed test.")
-                    return None
+                    rich_console.error_string(" Stopping the fixing process without saving failed test.")
+                    return FileFunctions.comment_out_code(current_test_code)
                 else:
                     rich_console.warning_string("❓ Please enter 'y' or 'n'.")
                     continue

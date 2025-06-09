@@ -1,7 +1,7 @@
 import json
 import subprocess
 import os
-from config import rich_console
+from config.rich_console import rich_console
 
 class FileFunctions:
     def __init__(self):
@@ -15,14 +15,8 @@ class FileFunctions:
         
         rich_console.success_string(f"Test code appended to {file_path}")
 
-    def append_test_code_as_commented(test_code: str, project_path: str, filename: str = "test_runner.py"):
-        file_path = os.path.join(project_path, filename)
-        
-        with open(file_path, "a", encoding="utf-8") as f:
-            f.write("\n\n")
-            f.write("# " + test_code)
-        
-        rich_console.warning_string(f"Test code appended as commented to {file_path}")
+    def comment_out_code(code: str) -> str:
+        return "\n# 🫸 FAILED TEST CODE (couldn't be fixed automatically) 🫷\n\n"+"\n".join(f"# {line}" for line in code.splitlines())
 
     def read_json_file(file_path:str):
         try:
