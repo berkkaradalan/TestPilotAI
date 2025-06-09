@@ -96,6 +96,7 @@ def process_command_line_args(args:argparse.Namespace, parser:argparse.ArgumentP
             test_runner_result =FastAPITestRunner. attempt_test_fix_loop(api_key=api_key_utils.get_api_key(),
                                                        model_name=chosen,
                                                        test_code=code_from_ai,
+                                                       parsed_openapi_endpoint_data=chosen_test["parsed_info"],
                                                        test_scenario=chosen_test["test_scenario"],
                                                        tree_struct=FileFunctions.get_tree_output(args.project_path, ignore_dirs=[".git", "__pycache__", ".idea", ".vscode", ".pytest_cache", ".mypy_cache"]),
                                                        project_path=str(args.project_path),

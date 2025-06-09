@@ -147,6 +147,7 @@ class FastAPITestRunner:
         api_key: str,
         model_name: str,
         test_code: str,
+        parsed_openapi_endpoint_data: str,
         test_scenario: str,
         tree_struct: str,
         project_path: str,
@@ -185,6 +186,7 @@ class FastAPITestRunner:
             
             prompt = (
                 FastApiPrompts.pytest_error_prompt + "\n\n"
+                + "- OpenAPI data of the project : " + "\n" + parsed_openapi_endpoint_data + "\n\n"
                 + "- Current test code : " + "\n" + current_test_code + "\n\n"
                 + "- Error output : " + "\n" + test_run_output + "\n\n"
                 + "- Test Scenario : " + "\n" + test_scenario + "\n\n"
