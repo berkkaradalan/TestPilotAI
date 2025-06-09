@@ -3,108 +3,169 @@ class FastApiPrompts:
     Prompts that can be used for FastAPI test generation and error fixing.
     """
     pytest_test_scenarios_prompt = """
-    You are a Senior Python developer with over 20 years of experience. Your task is to write a pytest test case scenario for the given endpoint names and of their methods.
-    Write the result with the following format for each endpoint:
+    You are a Senior Python developer with over 20 years of experience specializing in test-driven development. Generate comprehensive pytest test scenarios for the specified API endpoints using EXACTLY this format:
 
-    testcase_<Path_Context_Here>:
-        <scenario here>
+    testcase_<Exact_Path_Context>:
+        - <Detailed scenario description 1>
+        - <Detailed scenario description 2>
+        ...
 
-    Also consider these points:
-        - If a test case required to use other endpoints first also add them and use them in the test case.
-        - Add general use cases such as sending request without body and etc.
-        - Add edge cases such as sending invalid data and etc.
+    Follow these guidelines STRICTLY:
+    1. For each endpoint:
+    a. Include 3-5 general test scenarios covering valid requests, missing data, and parameter variations
+    b. Include 3-5 edge cases covering invalid formats, extreme values, and error conditions
+    c. Explicitly mention expected status codes and response validations
+    d. Reference dependent endpoints when setup requires prior API calls
 
-    Things you must do in your answer:
-        - You must only include given format in your answer. You can't add any other text or explanation.
-        - You must not include any markdown or code block in your answer.
-        - You must not include any code in your answer.
-        - You must add every given endpoint's test scenario in your answer.
-        - You must add Path context as exactly the same as given to you.
+    2. Scenario descriptions MUST:
+    - Be bulleted with "- " at indentation level 2
+    - Contain SPECIFIC validation checks (e.g., "verify 422 error when...")
+    - Mention ALL expected outcomes (status codes, error types, response fields)
+    - Include both positive and negative cases
+    - Cover authorization, validation, and data integrity aspects
+
+    3. STRICT PROHIBITIONS:
+    - NO markdown/code blocks
+    - NO explanations/comments
+    - NO code snippets
+    - NO additional text outside the specified format
+    - NEVER modify the given path contexts
+
+    4. Required scenario elements:
+    - Request body variations (empty/invalid/overloaded)
+    - Parameter boundary testing
+    - Error handling verification
+    - Authorization challenges
+    - Data type/casting issues
+    - Concurrency/dependency cases
+    - Response schema validation
     """
 
     pytest_test_write_prompt = """
-    You are a Senior Python developer with over 20 years of experience. Your task is to convert the given test case scenarios into actual pytest test functions.
+    You are a Senior Python developer with over 20 years of experience. Convert test scenarios into executable pytest code following these STRICT requirements:
 
-    Requirements for your answer:
-        - Use FastAPI's built-in TestClient for synchronous testing.
-        - Never use localhost.
-        - Your response must contain only Python code — no markdown formatting or explanatory text.
-        - Each test scenario must be implemented as a separate function.
-        - Use pytest best practices, including clear function names and necessary assertions.
-        - Include all required import statements at the top.
-        - Include setup or fixtures if required (e.g., creating a blog before deleting it).
-        - Use hardcoded values where necessary (e.g., dummy blog data).
-        - If an endpoint returns a 422, assert the presence of the "detail" field in the response.
-        - Match the path and HTTP method exactly as provided in the scenario.
-        - Only use status codes that are explicitly defined in the provided scenario or OpenAPI schema.
-
-    Advanced Authentication Handling:
-        - If an endpoint requires prior authentication (as indicated by OpenAPI "security" field):
-            - Check if both auth_login_endpoint and auth_register_endpoint are provided (non-empty strings).
-                - If both are provided:
-                    - Use the register endpoint to create a user (if needed).
-                    - Then use the login endpoint to get a valid auth token.
-                    - Use this token in subsequent authenticated requests (via Authorization header).
-                - If either is missing:
-                    - Skip all test functions that require authentication using:
-                        @pytest.mark.skip(reason="Authentication endpoints not provided")
-            - Otherwise, identify another endpoint that issues access tokens (look for fields like "token", "access_token", or "session_id" in the response).
-            - Use the token appropriately based on endpoint behavior (e.g., in headers, query parameters, or request body).
-            - For one-time access endpoints (e.g., /image/request-access):
-                - Simulate the full flow: first call the issuing endpoint, then use the received token/code to access the protected resource.
-
-    Execution Rule:
-        - At the end of the generated test file, include:
+    1. Output Format:
+    - ONLY valid Python code (no markdown, no explanations)
+    - Start with required imports
+    - Implement ALL scenarios as separate test functions
+    - End with execution block:
             if __name__ == "__main__":
                 import pytest
                 pytest.main(["-vv", "-s"])
 
-    Extra contextual information to assist with test generation is provided below
+    2. Implementation Rules:
+    - Use FastAPI's TestClient synchronously
+    - NEVER use localhost (use app instance instead)
+    - HTTP methods and paths MUST match scenarios exactly
+    - Use hardcoded data for test cases
+    - For 422 responses: assert "detail" in response.json()
+    - Status codes MUST align with OpenAPI spec
 
+    3. Test Structure:
+    - Clear function names: test_<endpoint>_<scenario_summary>
+    - Single responsibility per test
+    - Required assertions for:
+            - Status codes
+            - Response fields
+            - Error messages
+            - Data validation
 
+    4. Authentication Protocol:
+    if endpoint requires auth:
+        if auth_login_endpoint and auth_register_endpoint provided:
+            - Create user via /register (store credentials)
+            - Login via /login to obtain token
+            - Use token in Authorization: Bearer header
+        else:
+            - Skip tests requiring auth:
+                    @pytest.mark.skip("Authentication endpoints not provided")
+
+    For one-time access endpoints:
+            - Chain requests: call issuer -> extract token -> access protected resource
+
+    5. Setup Requirements:
+    - Use @pytest.fixture for:
+            - TestClient initialization
+            - Reusable test data
+            - Database setup/teardown
+    - Create prerequisite resources (e.g., blog before testing deletion)
+    - Clean test data after execution
+
+    6. Edge Case Handling:
+    - Invalid data types
+    - Missing required fields
+    - Extreme values (max/min lengths)
+    - Unauthorized access attempts
+    - Resource not found (404)
+    - Service unavailability simulation
+
+    7. Prohibited:
+    - Any non-Python output
+    - Markdown/code fences
+    - Localhost references
+    - Placeholder comments
+    - Incomplete test implementations
     """
 
 
     pytest_error_prompt = """
-    You are a Senior Python developer with over 20 years of experience. Your task is to fix the given pytest test code based on the provided error output.
+    You are a Senior Python developer with over 20 years of experience in test-driven development. Fix the provided pytest code based on the given error output following these STRICT requirements:
 
-    Instructions:
-        - Your response must contain only pure Python code. Do not use markdown formatting, code blocks, or explanations.
-        - Carefully review the provided test code and its corresponding error output.
-        - Fix the test code so that it passes all tests without errors.
-        - Use FastAPI's TestClient for API testing. Never use localhost or real HTTP calls.
-        - Follow best practices: clear function names, appropriate assertions, and necessary fixtures or setup.
-        - Include all required import statements at the top.
-        - Preserve the structure of the original test file unless changes are necessary to fix errors.
-        - If an endpoint returns a 422, assert the presence of the "detail" field in the response.
-        - Only use status codes that are explicitly defined in the scenario or OpenAPI schema.
-
-    Advanced Authentication Handling:
-        - If an endpoint requires authentication (indicated by the OpenAPI "security" field):
-            - Check if both auth_login_endpoint and auth_register_endpoint are provided.
-                - If both are provided:
-                    - Register a user if needed, then login to get an auth token.
-                    - Use the token in subsequent authenticated requests (e.g., Authorization header).
-                - If either is missing:
-                    - Skip the affected test function using:
-                        @pytest.mark.skip(reason="Authentication endpoints not provided")
-            - If other endpoints issue tokens (e.g., with fields like "token", "access_token", or "session_id"), use those instead.
-            - Do not invent endpoint names or token formats; infer them from OpenAPI or examples.
-
-    Error Handling:
-        - If a test cannot be fixed due to missing functionality or unclear API behavior, annotate it with:
-            @pytest.mark.skip(reason="explanation")
-        - Only skip individual failing tests, never the whole file.
-
-    Execution Rule:
-        - Ensure that at the end of the file, the following is present:
+    1. Output Format:
+    - ONLY valid Python code (no markdown, no explanations)
+    - Preserve original test structure unless essential for fixes
+    - Maintain all existing imports and add missing ones
+    - Retain execution block:
             if __name__ == "__main__":
                 import pytest
                 pytest.main(["-vv", "-s"])
 
-    Extra contextual information to assist with test generation is provided below
+    2. Error Correction Protocol:
+    a. Analyze error output to identify:
+            - Incorrect status code expectations
+            - Authentication failures
+            - Response validation mismatches
+            - Resource dependency issues
+    b. Apply minimal changes to fix failing tests
+    c. Never modify passing tests
 
+    3. Authentication Handling:
+    if test requires auth:
+        if auth endpoints provided:
+            - Implement full auth flow: 
+                    register -> login -> token extraction
+            - Use token in Authorization: Bearer
+        else:
+            - Skip ONLY affected tests:
+                    @pytest.mark.skip("Authentication endpoints not provided")
 
+    4. Error Response Handling:
+    - For 422 responses: assert "detail" in response.json()
+    - Validate error structures against OpenAPI spec
+    - Handle missing resources (404) with precise assertions
+
+    5. Unfixable Tests:
+    - Skip INDIVIDUAL tests with explanation:
+            @pytest.mark.skip("Reason: <concise explanation>")
+    - Preserve original test signatures when skipping
+
+    6. Prohibited Actions:
+    - Changing working tests
+    - Adding new test cases
+    - Using real network calls (localhost forbidden)
+    - Altering test function names
+    - Removing valid assertions
+    - Modifying the execution block
+
+    7. Critical Focus Areas:
+    - Fixture dependencies (setup/teardown)
+    - Hardcoded data alignment with API schemas
+    - Response field validation
+    - Status code verification
+    - Token extraction and usage
+    - Resource cleanup between tests
+
+    
     """
 
     semantic_endpoint_extraction_prompt = """

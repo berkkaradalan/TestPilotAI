@@ -63,9 +63,9 @@ def process_command_line_args(args:argparse.Namespace, parser:argparse.ArgumentP
         
         
         endpoints = ParserFunctions.parse_endpoint_names(openapi_data=openapi_file_data)
-        auth_token_endpoint = OpenRouter.user_selection_fuzzy(given_choices=["[None]"]+endpoints)
-        auth_token_endpoint_prompt = ("User gave this endpoint to get authentication token \n" + ParserFunctions.parse_single_endpoint(openapi_data=openapi_file_data, endpoint_name=auth_token_endpoint)) if auth_token_endpoint else ""
-        rich_console.info_string(f"🔑 auth_token_endpoint: {auth_token_endpoint}")
+        auth_login_endpoint = OpenRouter.user_selection_fuzzy(given_choices=["[None]"]+endpoints)
+        auth_token_endpoint_prompt = ("User gave this endpoint to get authentication token (login) \n" + ParserFunctions.parse_single_endpoint(openapi_data=openapi_file_data, endpoint_name=auth_login_endpoint)) if auth_login_endpoint else ""
+        rich_console.info_string(f"🔑 auth login endpoint: {auth_login_endpoint}")
         auth_register_endpoint = OpenRouter.user_selection_fuzzy(given_choices=["[None]"]+endpoints)
         auth_register_endpoint_prompt = ("User gave this endpoint to register. You don't have a test user instead you have to create one using this endpoint \n" + ParserFunctions.parse_single_endpoint(openapi_data=openapi_file_data, endpoint_name=auth_register_endpoint)) if auth_register_endpoint else ""
         rich_console.info_string(f"📋 auth_register_endpoint: {auth_register_endpoint}")
