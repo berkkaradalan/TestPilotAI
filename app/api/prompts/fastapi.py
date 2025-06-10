@@ -78,6 +78,10 @@ class FastApiPrompts:
         - Preserve the structure of the original test file unless changes are necessary to fix errors.
         - If an endpoint returns a 422, assert the presence of the "detail" field in the response.
         - Only use status codes explicitly defined in the scenario or OpenAPI schema. Avoid making up expected codes.
+        - If authentication is required, ALWAYS generate a session-scoped `auth_headers` fixture that:
+            - registers the user (ignore 409),
+            - logs in to get `access_token`,
+            - returns {"Authorization": f"Bearer {token}"}.
 
     Advanced Authentication Handling:
         - If an endpoint requires authentication (indicated by the OpenAPI "security" field):
