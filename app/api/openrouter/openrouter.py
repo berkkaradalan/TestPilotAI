@@ -1,9 +1,11 @@
+import sys
 from InquirerPy import inquirer
 from InquirerPy.base.control import Choice
 import requests
 import json
 from typing import List, Dict
 from ..prompts.prompts import FastApiPrompts
+from config.rich_console import rich_console
 
 class OpenRouter:
     def __init__(self, api_key: str):
@@ -18,38 +20,64 @@ class OpenRouter:
 
     #todo - add retry annotation
     def get_openrouter_models(api_key: str):
-        url = "https://openrouter.ai/api/v1/models"
-        headers = {
-            "Authorization": f"Bearer {api_key}"
-        }
+        try:
+            url = "https://openrouter.ai/api/v1/models"
+            headers = {
+                "Authorization": f"Bearer {api_key}"
+            }
 
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        data = response.json()
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+            data = response.json()
 
-        models = data.get("data", [])
-        model_ids = [model["id"] for model in models if "id" in model]
-        return model_ids
+            models = data.get("data", [])
+            model_ids = [model["id"] for model in models if "id" in model]
+            return model_ids
+        except requests.RequestException as e:
+            rich_console.error_string(f"Failed to fetch models from OpenRouter: {e}")
+            rich_console.error_string("Please check your openrouter connection.")
+            sys.exit(1)
+        except json.JSONDecodeError as e:
+            rich_console.error_string(f"Failed to parse response from OpenRouter: {e}")
+            rich_console.error_string("Please check your openrouter connection.")
+            sys.exit(1)
+        except Exception as e:
+            rich_console.error_string(f"An unexpected error occurred: {e}")
+            rich_console.error_string("Please check your openrouter connection.")
+            sys.exit(1)
 
     #todo - add retry annotation
     def send_request_to_openrouter(api_key: str, model_name: str, prompt: str):
-        response = requests.post(
-        url="https://openrouter.ai/api/v1/chat/completions",
-        headers={
-        "Authorization": f"Bearer {api_key}",
-        },
-        data=json.dumps({
-            "model": model_name,
-            "messages": [
-            {
-                "role": "user",
-                "content": prompt,
-            }
-            ]
-        })
-        )
-
-        return response.json()['choices'][0]['message']['content']
+        try:
+            response = requests.post(
+            url="https://openrouter.ai/api/v1/chat/completions",
+            headers={
+            "Authorization": f"Bearer {api_key}",
+            },
+            data=json.dumps({
+                "model": model_name,
+                "messages": [
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+                ]
+            })
+            )
+            return response.json()['choices'][0]['message']['content']
+        except json.JSONDecodeError as e:
+            rich_console.error_string(f"Failed to parse response from OpenRouter: {e}")
+            rich_console.error_string("Please check your openrouter connection.")
+            sys.exit(1)
+        except requests.RequestException as e:
+            rich_console.error_string(f"Request to OpenRouter failed: {e}")
+            rich_console.error_string("Please check your openrouter connection.")
+            sys.exit(1)
+        except Exception as e:
+            rich_console.error_string(f"An unexpected error occurred: {e}")
+            rich_console.error_string("Please check your openrouter connection.")
+            sys.exit(1)
+            
 
     def convert_scenarios_dict_to_list(scenarios_dict: Dict[str, Dict[str, str]]):
         formatted_scenarios = []
