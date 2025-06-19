@@ -164,7 +164,10 @@ class FastAPITestRunner:
             rich_console.info_string(f"Attempt {attempt + 1}/{max_attempts}")
             
             test_run_output, execution_success = FastAPITestRunner.run_tests_safely(test_code=current_test_code, project_path=project_path, python_venv=python_venv)
-            if execution_success and not any(keyword in test_run_output for keyword in ["FAILED", "ERROR", "assert", "AssertionError"]):
+            if execution_success and not any(keyword in test_run_output for keyword in [
+                    "FAILED", "ERROR", "assert", "AssertionError",
+                    "ERROR at setup", "fixture", "ModuleNotFoundError", "ImportError", "TypeError", "NameError", "SyntaxError"
+                ]):
                 rich_console.success_string("All tests passed successfully!")
                 return current_test_code
             
