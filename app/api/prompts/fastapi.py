@@ -133,3 +133,37 @@ class FastApiPrompts:
     - Example output:
         ["/blog", "/blog/{id}", "/blog/create"]
     """
+
+    finalize_test_file_prompt = """
+    You are a Senior Python backend engineer specialized in automated testing and debugging. Your task is to fix the provided pytest test code using the given error logs and context.
+
+    Important Constraints:
+    - ❗ Do NOT assume this is a clean file. The provided test file may already contain previous test code or test functions.
+    - The file may contain test functions generated separately and then merged. Avoid function or fixture name duplication.
+    - 🧠 Before generating new test functions:
+        - Check for **duplicate function names**.
+        - If the same test is already present, **replace** the existing function instead of appending.
+        - If test functions conflict (same name, similar purpose), **keep only the corrected version**.
+
+    Required Fixes:
+    - Fix any broken assertions or logic based on the error output.
+    - Ensure all tests can run **individually** and **in bulk** without side effects.
+    - Use `TestClient` from FastAPI for all API requests. Do NOT use `requests` or localhost.
+    - If tests use fixtures, make sure their names are not duplicated in the file.
+    - If data like users or blogs are reused across tests, avoid creating duplicates by:
+        - Ignoring 409 on registration or
+        - Using randomized values (e.g., user_{uuid4()}).
+
+    Requirements:
+    - The output must be **pure Python code only**.
+    - Do NOT include any markdown, explanation, or code fences.
+    - If any test is unfixable due to missing behavior or design, skip it with `@pytest.mark.skip(reason="...")`.
+
+    Context to help you:
+    - Provided test code may already contain a `__main__` block. Only one should exist in the file.
+    - Always end the file with:
+
+        if __name__ == "__main__":
+            import pytest
+            pytest.main(["-vv", "-s"])
+    """

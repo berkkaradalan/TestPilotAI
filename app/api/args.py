@@ -81,7 +81,8 @@ def process_command_line_args(args:argparse.Namespace, parser:argparse.ArgumentP
         parsed_open_api_data = ParserFunctions.parse_open_api(openapi_data=openapi_file_data, api_key=api_key_utils.get_api_key(), open_router_models=chosen)
         test_scenarios = OpenRouter.convert_scenarios_dict_to_list(scenarios_dict=json.loads(parsed_open_api_data))
         
-        chosen_tests = OpenRouter.select_scenarios_to_run(test_scenarios)        
+        chosen_tests = OpenRouter.select_scenarios_to_run(test_scenarios)
+        generated_code = ""
         for chosen_test in tqdm(chosen_tests, desc="🤖 Generating Test Code", unit="endpoint"):
             relative_paths = ParserFunctions.parse_string_to_list(chosen_test["relative_paths"])
 
@@ -105,8 +106,17 @@ def process_command_line_args(args:argparse.Namespace, parser:argparse.ArgumentP
                                                        related_endpoints_prompt=related_endpoints_parsed_data,
                                                        max_attempts=api_key_utils.get_max_attempts(),
                                                        python_venv=python_venv)
-            
-            FileFunctions.append_test_code_to_file(test_code=str(test_runner_result), project_path=str(args.project_path), filename=args.save_as)
-            
+            generated_code += test_runner_result + "\n"
+        rich_console.step_info("finalizing the test code")
+        finalized_test_code = FastAPITestRunner.finalize_combined_test_file(
+            api_key=api_key_utils.get_api_key(),
+            model_name=chosen,
+            test_code=generated_code,
+            project_path=str(args.project_path),
+            python_venv=python_venv,
+            max_attempts=api_key_utils.get_max_attempts(),
+        )
+        FileFunctions.append_test_code_to_file(test_code=str(finalized_test_code), project_path=str(args.project_path), filename=args.save_as)
+
     else:
         parser.print_help()

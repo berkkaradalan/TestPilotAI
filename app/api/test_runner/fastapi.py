@@ -209,3 +209,66 @@ class FastAPITestRunner:
             attempt += 1
         
         return None
+    
+    @staticmethod
+    def finalize_combined_test_file(
+        api_key: str,
+        project_path: str,
+        model_name: str,
+        test_code: str,
+        max_attempts: int = 10,
+        python_venv: str = None,
+    ):
+        
+        attempt = 0
+        current_test_code = test_code
+
+        while attempt < max_attempts:
+            rich_console.info_string(f"[Final Fix Loop] Attempt {attempt + 1}/{max_attempts}")
+
+            test_output, execution_success = FastAPITestRunner.run_tests_safely(
+                test_code=current_test_code,
+                project_path=project_path,
+                python_venv=python_venv
+            )
+
+            if execution_success and not any(keyword in test_output for keyword in [
+                "FAILED", "ERROR", "assert", "AssertionError",
+                "ERROR at setup", "fixture", "ModuleNotFoundError",
+                "ImportError", "TypeError", "NameError", "SyntaxError"
+            ]):
+                rich_console.success_string("✅ Final combined test file passed!")
+                return current_test_code
+
+            rich_console.warning_string(f"[Final Fix Loop] Detected issues in attempt {attempt + 1}:")
+            for line in test_output.splitlines():
+                if any(kw in line for kw in ["FAILED", "ERROR", "assert", "AssertionError"]):
+                    rich_console.error_string(f" {line}")
+
+            if attempt + 1 >= max_attempts:
+                user_input = input("⚠️  Maximum attempts reached in final fix loop. Continue? (y/n): ").strip().lower()
+                if user_input == "y":
+                    max_attempts += 10
+                elif user_input == "n":
+                    rich_console.error_string("Stopping final fix without saving.")
+                    return FileFunctions.comment_out_code(current_test_code)
+                else:
+                    rich_console.warning_string("❓ Please enter 'y' or 'n'.")
+                    continue
+
+            prompt = (
+                FastApiPrompts.finalize_test_file_prompt + "\n\n"
+                "- Current test code : " + "\n" + current_test_code + "\n\n"
+                "- Test output : " + "\n" + test_output + "\n\n"
+            )
+
+            fixed_code = OpenRouter.send_request_to_openrouter(
+                api_key=api_key,
+                model_name=model_name,
+                prompt=prompt
+            )
+
+            current_test_code = fixed_code
+            attempt += 1
+
+        return None
