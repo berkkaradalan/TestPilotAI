@@ -38,9 +38,11 @@ def process_command_line_args(args:argparse.Namespace, parser:argparse.ArgumentP
     if args.command == 'set-apikey':
         rich_console.success_string(api_key_utils.set_api_key(args.api_key))
     elif args.command == 'get-apikey':
-        rich_console.info_string(api_key_utils.get_api_key_for_user())
+        msg = api_key_utils.get_api_key_for_user()
+        (rich_console.error_string if msg.startswith("❌") else rich_console.info_string)(msg)
     elif args.command == 'delete-apikey':
-        rich_console.success_string(api_key_utils.delete_api_key())
+        msg = api_key_utils.delete_api_key()
+        (rich_console.error_string if msg.startswith("❌") else rich_console.success_string)(msg)
     elif args.command == 'set-max-attempts':
         rich_console.success_string(api_key_utils.set_max_attempts(args.value))
     elif args.command == 'get-max-attempts':
