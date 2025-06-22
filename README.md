@@ -9,6 +9,10 @@ TestPilot AI is an AI-assisted automated test generation and repair tool. It rea
 - 🔁 Loops until all tests pass (or max retry)
 - ⚙️ Framework-agnostic core
 
+🎥 **Testpilotai Demo**  
+Check out how TestPilot AI works in action:  
+👉 [Watch on YouTube](https://youtu.be/G8catzI7l-s)
+
 ## 🚀 Getting Started
 1. Install the tool
 ```bash
@@ -19,7 +23,7 @@ pip install .
 
 2. Set your API key (OpenRouter/OpenAI)
 ```bash
-testpilotai --set-api-key
+testpilotai set-apikey --api-key sk-or-v1-your-api-key-here
 ```
 >The key is stored securely using keyring.
 
@@ -53,9 +57,15 @@ testpilotai run \
 ## 🤝 Contributing
 Contributions are welcome! You can implement support for new frameworks by adding modules under:
 ```
-prompts/{framework}.py
+To support a new framework (e.g., Django):
 
-test_runner/{framework}.py
+1. Add a prompt module:
+   `prompts/django.py`
+
+2. Add a test runner:
+   `test_runner/django_runner.py`
+
+3. Register your framework in the CLI logic.
 ```
 > Feel free to open issues, discuss ideas, or submit pull requests.
 
